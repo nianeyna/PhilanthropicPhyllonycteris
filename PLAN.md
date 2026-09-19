@@ -144,7 +144,7 @@ Everything holding a GameObject is checked by hand in the game, as in the siblin
 
 ## Milestones
 
-1. **Scaffold.** Solution, props, three projects, plugin loads and logs its version. README and CLAUDE.md stubs.
+1. **Scaffold.** ✅ Done (2026-09-19; load line confirmed in the BepInEx log). Solution, props, three projects, plugin loads and logs its version. README and CLAUDE.md stubs.
 2. **Core + tests.** The six Core files and their tests, green.
 3. **Chart marker.** `MapAccess`, both patches, click handling, `ChartMarker`, `MarkerStore`. Resolve the two chart verifications (icon composition/layer, label raycasts). Check: place, move, remove, zoom scaling, survives quit and reload, separate captains with different maps do not share it, an heir with the chart keeps it and one without starts clean, chart controls still work.
 4. **Ship indicator.** `ShipIndicator` and the `LateUpdate` tick. Resolve the zee verifications (camera rotation, radius, submerged, dock states). Check: arrow tracks while circling the marker, hides in port / on the chart / on arrival, reappears after undocking and after a scene reload.

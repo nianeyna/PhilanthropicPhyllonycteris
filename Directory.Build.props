@@ -1,0 +1,15 @@
+<Project>
+
+  <!-- Location of the Sunless Sea install. Override with an env var:
+         SUNLESS_SEA_DIR=/path/to/SunlessSea dotnet build
+       or on the command line:
+         dotnet build -p:GameDir=/path/to/SunlessSea -->
+  <PropertyGroup>
+    <GameDir Condition="'$(GameDir)' == '' and '$(SUNLESS_SEA_DIR)' != ''">$(SUNLESS_SEA_DIR)</GameDir>
+    <GameDir Condition="'$(GameDir)' == ''">$(HOME)/.local/share/Steam/steamapps/common/SunlessSea</GameDir>
+    <GameManagedDir>$(GameDir)/Sunless Sea_Data/Managed</GameManagedDir>
+    <BepInExCoreDir>$(GameDir)/BepInEx/core</BepInExCoreDir>
+    <BepInExPluginsDir>$(GameDir)/BepInEx/plugins</BepInExPluginsDir>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,83 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>PhilanthropicPhyllonycteris</AssemblyName>
+    <RootNamespace>PhilanthropicPhyllonycteris</RootNamespace>
+    <Version>0.1.0</Version>
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../PhilanthropicPhyllonycteris.Core/PhilanthropicPhyllonycteris.Core.csproj" />
+  </ItemGroup>
+
+  <!-- BepInEx and Harmony, from the BepInEx install in the game folder -->
+  <ItemGroup>
+    <Reference Include="BepInEx">
+      <HintPath>$(BepInExCoreDir)/BepInEx.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(BepInExCoreDir)/0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Unity and game assemblies, referenced in place and never copied -->
+  <ItemGroup>
+    <Reference Include="UnityEngine">
+      <HintPath>$(GameManagedDir)/UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GameManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(GameManagedDir)/UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(GameManagedDir)/UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(GameManagedDir)/UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Sunless.Game">
+      <HintPath>$(GameManagedDir)/Sunless.Game.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Failbetter.Core">
+      <HintPath>$(GameManagedDir)/Failbetter.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Drop the built plugin straight into BepInEx/plugins/PhilanthropicPhyllonycteris -->
+  <Target Name="CopyToPlugins" AfterTargets="Build">
+    <PropertyGroup>
+      <PluginOutDir>$(BepInExPluginsDir)/$(AssemblyName)</PluginOutDir>
+    </PropertyGroup>
+    <ItemGroup>
+      <PluginFiles Include="$(TargetPath)" />
+      <PluginFiles Include="$(TargetDir)$(AssemblyName).pdb" Condition="Exists('$(TargetDir)$(AssemblyName).pdb')" />
+      <!-- The Core library ships alongside the plugin; BepInEx resolves it from the same folder -->
+      <PluginFiles Include="$(TargetDir)PhilanthropicPhyllonycteris.Core.dll" />
+      <PluginFiles Include="$(TargetDir)PhilanthropicPhyllonycteris.Core.pdb" Condition="Exists('$(TargetDir)PhilanthropicPhyllonycteris.Core.pdb')" />
+    </ItemGroup>
+    <MakeDir Directories="$(PluginOutDir)" />
+    <Copy SourceFiles="@(PluginFiles)" DestinationFolder="$(PluginOutDir)" SkipUnchangedFiles="true" />
+    <Message Importance="high" Text="PhilanthropicPhyllonycteris -> $(PluginOutDir)" />
+  </Target>
+
+</Project>

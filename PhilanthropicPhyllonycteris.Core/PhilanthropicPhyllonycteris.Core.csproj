@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Coordinates, the marker file format and the indicator maths. No Unity, BepInEx, or game assembly dependencies,
+       so it can be referenced by both the net472 plugin and a net8 test project. -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>PhilanthropicPhyllonycteris.Core</RootNamespace>
+    <AssemblyName>PhilanthropicPhyllonycteris.Core</AssemblyName>
+    <Deterministic>true</Deterministic>
+    <DebugType>portable</DebugType>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
