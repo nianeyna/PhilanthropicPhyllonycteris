@@ -44,6 +44,7 @@ README.md                       player-facing: install, use, config
 CLAUDE.md                       environment + verified facts, grown as they are measured
 PhilanthropicPhyllonycteris.Core/     netstandard2.0, no Unity or game references
   ZeePoint.cs                   readonly struct (X, Y) in world units
+  ChartPoint.cs                 readonly struct (X, Y) in chart units, so the two scales cannot be mixed
   ChartSpace.cs                 chart local <-> world (x10), clamp/contains for map bounds
   MapFingerprint.cs             stable hash of width, height, ordered tile names
   MarkerFile.cs                 text format: parse, serialise, per-fingerprint lookup
@@ -145,7 +146,7 @@ Everything holding a GameObject is checked by hand in the game, as in the siblin
 ## Milestones
 
 1. **Scaffold.** ✅ Done (2026-09-19; load line confirmed in the BepInEx log). Solution, props, three projects, plugin loads and logs its version. README and CLAUDE.md stubs.
-2. **Core + tests.** The six Core files and their tests, green.
+2. **Core + tests.** ✅ Done (2026-09-19; 33 tests green). The Core files and their tests, green.
 3. **Chart marker.** `MapAccess`, both patches, click handling, `ChartMarker`, `MarkerStore`. Resolve the two chart verifications (icon composition/layer, label raycasts). Check: place, move, remove, zoom scaling, survives quit and reload, separate captains with different maps do not share it, an heir with the chart keeps it and one without starts clean, chart controls still work.
 4. **Ship indicator.** `ShipIndicator` and the `LateUpdate` tick. Resolve the zee verifications (camera rotation, radius, submerged, dock states). Check: arrow tracks while circling the marker, hides in port / on the chart / on arrival, reappears after undocking and after a scene reload.
 5. **Polish.** Fades, colours, final sprite shapes, README, record the measured facts in CLAUDE.md.
