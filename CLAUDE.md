@@ -35,6 +35,7 @@ The game path comes from `Directory.Build.props` (`GameDir`, override with `SUNL
 - Markers are keyed by `MapAccess.Fingerprint` (layout hash), never by captain or save name, and live in `BepInEx/config/PhilanthropicPhyllonycteris.markers.txt`, never in the game's `saves/` folder (the game lists every json there as a captain). `MapFingerprint`'s algorithm is pinned by a test; changing it orphans every stored marker.
 - `MarkerStore.Changed` is the only thing the chart icon (and later the arrow) reacts to. Click handling never touches GameObjects.
 - `MapProvider.Generate` runs on every zee load and rebuilds the whole chart, `_icons` included, so the marker is rebuilt from its postfix. Being in `_icons` is what keeps the marker a constant size on screen; the game writes `new Vector3(s, s)` to those, so their z scale is 0.
+- The arrow (`ShipIndicator`) is a root world-space sprite ticked from `Plugin.LateUpdate`, so it reads the boat after the boat has moved. It dies with the zee scene and is recreated on the next tick that needs it. Never call `NavigationProvider.Instance.Boat` per frame: with no boat in the scene it runs `GameObject.Find` every call.
 - If a `MapProvider` field is missing, `MapAccess.Available` is false and no patch is applied at all.
 
 ## Verified in game
@@ -51,3 +52,11 @@ From a `Debug.DumpMapIcons` capture, 2026-09-19. Record further "to verify" item
 | Fog of unknown | `MeshRenderer`, `Unlit/Transparent`, z -5, sorting layer **"Particles"** order 0 (set by a `ParticleEffectsLayering` component). It hides everything on "Default", port icons included, whatever their z or order: the sorting layer decides, not depth |
 | Labels | World-space canvas `MapLabelCanvas`, "AboveLights" order 10, with a `GraphicRaycaster`, and label `Text` is a raycast target, so `EventSystem.IsPointerOverGameObject()` is true over label text |
 | Marker | Sorts on the boat icon's layer at the boat's order + 1 (above the fog, under the labels); 6 chart units across |
+
+From a `Debug.DumpShip` capture, 2026-09-19:
+
+| Thing | Value |
+|---|---|
+| Sorting layers, bottom to top | BelowWater (-3), SeaBed (-2), Decals (-1), Default (0), Particles (1), LightingOverlay (2), AboveLights (3), Weather (4). The darkness is "LightingOverlay", so only "AboveLights" and "Weather" escape it |
+| Player boat | Root "PlayerBoat" on layer 0 at z -0.1, holding `MoveBoat`; hull sprites (`BoatLayer01`, ...) are `Sprites/Default` on sorting layer "Default", about 12 x 41 world units for the starting ship |
+| Arrow | Layer 0, the boat's z, sorting layer "AboveLights"; 12 world units across on a ring of radius 45, hidden within 90 |

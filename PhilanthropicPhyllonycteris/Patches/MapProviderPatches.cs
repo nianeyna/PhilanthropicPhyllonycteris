@@ -19,6 +19,7 @@ internal static class ChartBuiltPatch
         var character = GameProvider.Instance.CurrentCharacter;
         if (character?.TileConfig == null) return;
         MarkerStore.Instance.MapLoaded(MapAccess.Fingerprint(character.TileConfig));
+        ShipIndicator.Instance.ZeeBuilt();
     }
 }
 

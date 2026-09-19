@@ -13,6 +13,7 @@ namespace PhilanthropicPhyllonycteris.Game;
 internal static class MapDump
 {
     private static bool _done;
+    private static bool _shipDone;
 
     public static void OnChartShown()
     {
@@ -46,6 +47,24 @@ internal static class MapDump
             var label = labels.GetComponentInChildren<Text>(includeInactive: true);
             if (label != null) text.AppendLine($"  first label \"{label.name}\": raycastTarget {label.raycastTarget}");
         }
+        Plugin.Log.LogInfo(text.ToString());
+    }
+
+    /// <summary>Behind <c>Debug.DumpShip</c>: the same for the boat and the sailing camera, once per session.</summary>
+    public static void OnShipFound(Component boat)
+    {
+        if (_shipDone || !Plugin.DumpShip.Value) return;
+        _shipDone = true;
+
+        var text = new StringBuilder("Ship dump\n");
+        text.AppendLine("Sorting layers, bottom to top: " + string.Join(", ", SortingLayer.layers.Select(l => $"{l.name} ({l.value})")));
+        var camera = Camera.main;
+        if (camera != null)
+        {
+            text.AppendLine($"Camera \"{camera.name}\": position {camera.transform.position:F2}, rotation {camera.transform.eulerAngles:F2}, " +
+                $"near {camera.nearClipPlane}, far {camera.farClipPlane}, ortho size {camera.orthographicSize}, culling mask 0x{camera.cullingMask:X8}");
+        }
+        Describe(text, "Boat", boat.gameObject, children: true);
         Plugin.Log.LogInfo(text.ToString());
     }
 

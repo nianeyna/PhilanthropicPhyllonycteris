@@ -13,6 +13,7 @@ internal static class Sprites
     private static readonly Color Rim = new Color(0.1f, 0.08f, 0.05f);
 
     private static Sprite? _cross;
+    private static Sprite? _chevron;
 
     /// <summary>X marks the spot. <paramref name="unitsAcross"/> is its width in the units of whatever it is parented to.</summary>
     public static Sprite Cross(float unitsAcross)
@@ -23,6 +24,17 @@ internal static class Sprites
             DistanceToSegment(x, y, -arm, -arm, arm, arm),
             DistanceToSegment(x, y, -arm, arm, arm, -arm)) - halfStroke, rimWidth);
         return _cross;
+    }
+
+    /// <summary>An arrowhead pointing along +x, so a rotation about z by the bearing aims it.</summary>
+    public static Sprite Chevron(float unitsAcross)
+    {
+        if (_chevron != null) return _chevron;
+        const float tip = 16f, tail = -12f, spread = 20f, halfStroke = 4.5f, rimWidth = 3f;
+        _chevron = Draw(unitsAcross, (x, y) => Math.Min(
+            DistanceToSegment(x, y, tip, 0f, tail, spread),
+            DistanceToSegment(x, y, tip, 0f, tail, -spread)) - halfStroke, rimWidth);
+        return _chevron;
     }
 
     #region Drawing
