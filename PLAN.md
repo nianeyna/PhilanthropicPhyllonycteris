@@ -1,0 +1,151 @@
+# PhilanthropicPhyllonycteris: plan
+
+A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while a marker exists and the ship is out of port, an arrow floating on an invisible ring around the ship points toward it.
+
+Environment, build conventions and game facts are taken from `../sunless-sea-project` (CLAUDE.md, `decomp/`) and `../EndlessGazetteer`. Game 3.0.0.31, Unity 6000.3, Mono, native Linux build, Harmony works.
+
+## Behaviour
+
+- **Place:** with the chart open, right-click on the chart. The marker appears under the pointer. There is one marker; right-clicking elsewhere moves it.
+- **Remove:** right-click on the marker itself (hit test in screen pixels, so it is as easy at any zoom).
+- macOS ctrl+left-click counts as a right-click, as it does everywhere else in the game (`OnClickHandler.MacCtrlPressed`; the game's own drag code already ignores that click).
+- Clicks on the chart's uGUI controls (close, zoom) and outside the map rectangle do nothing. Fog of unknown does not matter: marking unexplored zee is the point.
+- **Indicator:** an arrow at a fixed radius from the ship, on the bearing to the marker, rotated to point along that bearing. Shown whenever a marker exists, except in dock (`UIState.InDock`), with the chart open (`InMap`), or once the ship is closer to the marker than a threshold (the arrow would otherwise point back across the ship). It is a world-space object, so the book and menus cover it on their own and it freezes with the game when paused.
+- The marker persists across sessions, per map (see Persistence).
+
+Out of scope for the first version: multiple markers, labels, a beacon drawn at the marked spot in the zee, distance readout, clear-on-arrival. The storage format leaves room for the first two.
+
+## Game facts this rests on (from `decomp/`)
+
+| Fact | Source |
+|---|---|
+| Chart coordinates are world coordinates / 10. Zee tiles are 1500 world units, chart tiles 150. Everything on the chart is a child of `_mapRoot` ("Map"), which is translated by (-mapWidth/2, -mapHeight/2), so **`_mapRoot` local position x 10 = world position** | `MapProvider.Generate`, `SetupBoatIcon` (`boat.position / 10`), `MarkZeeBatLocation`, `Tiler.LayoutTiles` |
+| Pointer to chart: `_mapCamera.ScreenToWorldPoint(Input.mousePosition)`, as the game's own drag code does; then `_mapRoot.transform.InverseTransformPoint` | `MapProvider.CalculateCameraPosition` |
+| Map bounds in chart units: 0.._mapWidth, 0.._mapHeight (`TileConfig.Width/Height * 150`) | `MapProvider.Generate` |
+| `MapProvider` is a singleton that outlives scenes, but `Generate()` rebuilds every GameObject each time the zee loads (called from `Tiler.LayoutTiles`) | `Tiler.cs:71` |
+| `MapProvider.ListenKeyboardEvents()` runs every frame; its `InMap` branch is the chart's per-frame tick | `DebugInputs.cs:19` |
+| Icons in the private `_icons` list are rescaled with zoom every frame by `ResizeMapItems` (`1 + (ortho - 150)/150 + 0.2`). Port icons and the bat mark sit at z = -0.5 | `MapProvider.ResizeMapItems`, `SetupMapPort` |
+| The game does nothing with the right mouse button on the chart; left button drags | `MapProvider`, `MouseController` |
+| The game's own precedent for "a thing that follows the ship": `BatSignalIndication` instantiates a root world-space prefab and sets `transform.position = Boat.transform.position` each update | `Sunless.Game.UI.HUD/BatSignalIndication.cs` |
+| Ship: `NavigationProvider.Instance.Boat` (`MoveBoat`). Sailing camera "Main Camera" is orthographic, size 150 to 200 world units | `MouseController` |
+| Dock state: `GameProvider.Instance.CurrentUIState.InDock`; chart state: `InMap` | `GameProvider.UIState` |
+| A captain is not one file: `Save()` writes "Autosave" and named saves, and an heir may inherit the chart (`LegacyProvider.Chart ?? GenerateTileConfig()`). `CharacterRepository.GetCharacterNames` lists every `saves/*.json` as a captain, so nothing of ours goes in `saves/` | `CharacterRepository`, `LegacyProvider.cs:427` |
+| `CurrentCharacter.TileConfig` = `Width`, `Height`, ordered `Tiles[]` with `Name` (the specific tile version) | `SerializableTileConfig` |
+
+## Layout
+
+Same three-project shape as the sibling mods, `Directory.Build.props` copied from EndlessGazetteer (GameDir / `SUNLESS_SEA_DIR`), build copies the plugin to `<game>/BepInEx/plugins/PhilanthropicPhyllonycteris/`.
+
+```
+PhilanthropicPhyllonycteris.sln
+Directory.Build.props
+.gitignore                      bin/ obj/ *.user .vs/ .idea/
+README.md                       player-facing: install, use, config
+CLAUDE.md                       environment + verified facts, grown as they are measured
+PhilanthropicPhyllonycteris.Core/     netstandard2.0, no Unity or game references
+  ZeePoint.cs                   readonly struct (X, Y) in world units
+  ChartSpace.cs                 chart local <-> world (x10), clamp/contains for map bounds
+  MapFingerprint.cs             stable hash of width, height, ordered tile names
+  MarkerFile.cs                 text format: parse, serialise, per-fingerprint lookup
+  IndicatorMath.cs              bearing, ring position, visibility by distance
+  MarkerHitTest.cs              "is this click on the marker" in screen pixels
+PhilanthropicPhyllonycteris/          net472 plugin
+  Plugin.cs                     config, Harmony, LateUpdate tick
+  MarkerStore.cs                owns the file and the current marker; raises Changed
+  Game/MapAccess.cs             FieldRefs into MapProvider privates, in one place
+  Patches/MapProviderPatches.cs Generate postfix, ListenKeyboardEvents postfix
+  Patches/NewMapPatches.cs      GenerateTileConfig postfix: a fresh zee starts unmarked
+  UI/ChartMarker.cs             the icon on the chart
+  UI/ShipIndicator.cs           the arrow by the ship
+  UI/Sprites.cs                 builds the two sprites
+PhilanthropicPhyllonycteris.Tests/    net8.0 xunit, references Core only
+```
+
+GUID `nianeyna.PhilanthropicPhyllonycteris`. Code style as in the siblings: nullable on, `region` comments for sections, game privates touched only through `MapAccess`.
+
+## Design
+
+### Reaching into MapProvider
+
+`MapAccess` holds `AccessTools.FieldRefAccess` for `_mapRoot`, `_mapCamera`, `_icons`, `_mapWidth`, `_mapHeight`, resolved once in `Awake`; a missing field logs one error and disables the mod rather than throwing per frame.
+
+Patches (both postfixes, nothing of the game's is skipped):
+
+- `MapProvider.Generate`: the zee has just been (re)built. Compute the fingerprint of `CurrentCharacter.TileConfig`, ask `MarkerStore` for that map's marker, build the `ChartMarker` under `_mapRoot` if there is one. The early-out branch ("Map could not be found") leaves `_mapRoot` null; check for it.
+- `MapProvider.ListenKeyboardEvents`: when `InMap` and a right-click went down this frame, run the click handler below.
+
+### Click handling
+
+1. Ignore if `EventSystem.current.IsPointerOverGameObject()`. **To verify:** the chart's labels are uGUI `Text` on world-space canvases; if they are raycast targets they would swallow clicks on label text. If so, replace the check with `EventSystem.RaycastAll` filtered to `Selectable`s.
+2. Pointer to chart local point (see facts table). Reject if outside the map rectangle.
+3. If a marker exists and the click is within `MarkerHitTest` radius of it (compare in screen space via `_mapCamera.WorldToScreenPoint`), remove it; otherwise set the marker to `ChartSpace.ToWorld(local)`.
+4. `MarkerStore` saves and raises `Changed`; `ChartMarker` and `ShipIndicator` react to that, not to the click.
+
+### ChartMarker
+
+A GameObject under `_mapRoot` at `(world.x/10, world.y/10, -0.5)` with a `SpriteRenderer`. Added to `MapProvider._icons` so the game's own `ResizeMapItems` keeps it a constant on-screen size (removed from the list before it is destroyed). Layer, sorting layer and order are copied from the boat icon's renderer so the map camera draws it and the sailing camera does not. **To verify:** what `Map/Icons/Ico_port` is made of (SpriteRenderer or mesh quad) and which layer it is on; one hierarchy dump behind a `Debug.DumpMapIcons` config entry settles it, and the finding goes in CLAUDE.md.
+
+### ShipIndicator
+
+A root world-space GameObject with a `SpriteRenderer`, driven from `Plugin.LateUpdate` so it reads the ship's position after the ship has moved:
+
+```
+visible = marker != null && Boat != null && !InDock && !InMap && distance > HideWithin
+position = boat.xy + direction * RingRadius      (z and layer copied from the ship's renderer)
+rotation = Euler(0, 0, bearingDegrees)           (sprite drawn pointing +X)
+```
+
+It dies with the zee scene; the Unity-null check recreates it lazily. Alpha eases in and out over a fraction of a second rather than popping (`Time.deltaTime`, so it holds still while paused).
+
+**To verify in game:** that the sailing camera never rotates (the ring is world-aligned, which is only right if north stays up); a ring radius that clears the ship sprite and its light cone at both zoom levels (start at 45 world units against an ortho size of 150 to 200); visibility and sort order while submerged in Zubmariner; that `InDock` is false in every at-zee state where the arrow should show (it is set at `NavigationProvider` 390/966/1088).
+
+### Sprites
+
+No art pipeline exists in the sibling mods. `Sprites` draws both textures in code at startup (a small pennant/cross for the chart, a chevron for the arrow, antialiased, white, tinted by config colour). If hand-drawn art is wanted later, swap the bodies for embedded PNGs through `ImageConversion.LoadImage` (adds a reference to `UnityEngine.ImageConversionModule`); nothing else changes.
+
+### Persistence
+
+One file, `BepInEx/config/PhilanthropicPhyllonycteris.markers.txt`, one line per map:
+
+```
+PhilanthropicPhyllonycteris markers v1
+<fingerprint>\t<x>\t<y>\t<utc set>
+```
+
+- Keyed by **map fingerprint**, not captain or save name: FNV-1a over width, height and the ordered tile names (not `string.GetHashCode`, which is not stable across runtimes). A captain's autosave and named saves then share a marker, and an heir who inherits the chart inherits the mark, while a reshuffled zee starts clean. Known cost: loading an older save of the same captain shows the newest marker. Accepted.
+- A freshly generated zee never has a marker: a postfix on `CharacterRepository.GenerateTileConfig()` (called for a new game and for an heir without the chart; an inherited chart bypasses it via `Chart ?? GenerateTileConfig()`) removes any stored line for the new config's fingerprint. Without it, an heir who rolled the same layout as a past captain (about 1 in 6 billion for the default rules: 24 cells drawn without repeats from five sets, before tile versions) would see that captain's marker.
+- Invariant-culture floats. Unparseable lines are dropped and the original copied to `.damaged` first, as SunlessSee's seen record does. Written on every change (changes are rare, so no debounce), to a sibling file that is swapped in.
+- Lines for other maps are preserved untouched; nothing ever prunes them (a line is ~60 bytes).
+
+### Config
+
+| Section.Key | Default | Purpose |
+|---|---|---|
+| `Indicator.Enabled` | true | Turn the arrow off and keep the chart marker |
+| `Indicator.RingRadius` | 45 | Distance of the arrow from the ship, world units |
+| `Indicator.HideWithin` | 90 | Hide the arrow when the marker is closer than this |
+| `Indicator.Colour` | warm yellow | Tint of the arrow |
+| `Marker.Colour` | same | Tint of the chart icon |
+| `Debug.DumpMapIcons` | false | Log the chart icon prefabs' components, layers and sorting once |
+
+Live `SettingChanged` handling only for the colours and `Enabled`; the rest are read each frame anyway.
+
+## Tests (Core only)
+
+Worth having, and nothing beyond:
+
+- `ChartSpace`: chart/world round trip; bounds rejection at the edges.
+- `MapFingerprint`: same config gives the same value (pinned literal, to catch an accidental algorithm change that would orphan everyone's markers); swapping two tiles changes it.
+- `MarkerFile`: round trip; clearing a fingerprint (the fresh-zee rule) removes only that line; other maps' lines survive a set and a remove; a damaged line is reported and the rest kept; decimal comma cultures do not change the output.
+- `IndicatorMath`: bearing for the four quadrants; position lies on the ring; hidden inside `HideWithin`.
+- `MarkerHitTest`: inside and outside the radius.
+
+Everything holding a GameObject is checked by hand in the game, as in the sibling mods.
+
+## Milestones
+
+1. **Scaffold.** Solution, props, three projects, plugin loads and logs its version. README and CLAUDE.md stubs.
+2. **Core + tests.** The six Core files and their tests, green.
+3. **Chart marker.** `MapAccess`, both patches, click handling, `ChartMarker`, `MarkerStore`. Resolve the two chart verifications (icon composition/layer, label raycasts). Check: place, move, remove, zoom scaling, survives quit and reload, separate captains with different maps do not share it, an heir with the chart keeps it and one without starts clean, chart controls still work.
+4. **Ship indicator.** `ShipIndicator` and the `LateUpdate` tick. Resolve the zee verifications (camera rotation, radius, submerged, dock states). Check: arrow tracks while circling the marker, hides in port / on the chart / on arrival, reappears after undocking and after a scene reload.
+5. **Polish.** Fades, colours, final sprite shapes, README, record the measured facts in CLAUDE.md.
