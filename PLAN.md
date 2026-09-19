@@ -54,9 +54,11 @@ PhilanthropicPhyllonycteris/          net472 plugin
   Plugin.cs                     config, Harmony, LateUpdate tick
   MarkerStore.cs                owns the file and the current marker; raises Changed
   Game/MapAccess.cs             FieldRefs into MapProvider privates, in one place
+  Game/MapDump.cs               Debug.DumpMapIcons: logs how the chart's own pieces are built
   Patches/MapProviderPatches.cs Generate postfix, ListenKeyboardEvents postfix
   Patches/NewMapPatches.cs      GenerateTileConfig postfix: a fresh zee starts unmarked
   UI/ChartMarker.cs             the icon on the chart
+  UI/ChartClicks.cs             right-click handling on the open chart
   UI/ShipIndicator.cs           the arrow by the ship
   UI/Sprites.cs                 builds the two sprites
 PhilanthropicPhyllonycteris.Tests/    net8.0 xunit, references Core only
@@ -147,6 +149,15 @@ Everything holding a GameObject is checked by hand in the game, as in the siblin
 
 1. **Scaffold.** ✅ Done (2026-09-19; load line confirmed in the BepInEx log). Solution, props, three projects, plugin loads and logs its version. README and CLAUDE.md stubs.
 2. **Core + tests.** ✅ Done (2026-09-19; 33 tests green). The Core files and their tests, green.
-3. **Chart marker.** `MapAccess`, both patches, click handling, `ChartMarker`, `MarkerStore`. Resolve the two chart verifications (icon composition/layer, label raycasts). Check: place, move, remove, zoom scaling, survives quit and reload, separate captains with different maps do not share it, an heir with the chart keeps it and one without starts clean, chart controls still work.
+3. **Chart marker.** ✅ Done (2026-09-19). Confirmed in game: shows over fog, place, move, remove, constant size under zoom, survives quit and reload, chart controls unaffected. Both chart verifications are settled by a `DumpMapIcons` capture (recorded in CLAUDE.md): labels are raycast targets, so clicks are filtered by `RaycastAll` for `Selectable`s; the fog is on its own sorting layer, so the marker sorts on the boat icon's layer, one above the boat. The captain and heir checks are in Deferred tests. `MapAccess`, both patches, click handling, `ChartMarker`, `MarkerStore`. Resolve the two chart verifications (icon composition/layer, label raycasts). Check: place, move, remove, zoom scaling, survives quit and reload, separate captains with different maps do not share it, an heir with the chart keeps it and one without starts clean, chart controls still work.
 4. **Ship indicator.** `ShipIndicator` and the `LateUpdate` tick. Resolve the zee verifications (camera rotation, radius, submerged, dock states). Check: arrow tracks while circling the marker, hides in port / on the chart / on arrival, reappears after undocking and after a scene reload.
 5. **Polish.** Fades, colours, final sprite shapes, README, record the measured facts in CLAUDE.md.
+
+## Deferred tests
+
+In-game checks that are tedious to set up, so they wait for a convenient moment rather than blocking a milestone. Until then the behaviour rests on the Core tests and on reading the game's code.
+
+- **A captain on a different map does not see the marker.** Mark the chart, start a new captain (fresh zee), open the chart: no marker, and the first captain's line is still in `PhilanthropicPhyllonycteris.markers.txt`.
+- **An heir who inherits the chart keeps the marker.** Mark the chart, die, take the chart as a legacy: the marker is where it was.
+- **An heir without the chart starts clean.** Same, without the chart legacy: no marker. (The identical-layout case behind `FreshZeePatch` cannot be staged by play; to exercise it, copy the new map's fingerprint onto a line in the markers file before creating the captain and check the log for "its old marker was dropped".)
+

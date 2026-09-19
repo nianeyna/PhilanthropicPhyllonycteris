@@ -30,6 +30,24 @@ The game path comes from `Directory.Build.props` (`GameDir`, override with `SUNL
 - **`PhilanthropicPhyllonycteris`** (net472 plugin): Harmony patches, the marker store, and the GameObjects. Game privates are touched only through `Game/MapAccess`.
 - **`PhilanthropicPhyllonycteris.Tests`** (net8.0 xunit): references Core only. Anything holding a GameObject is checked by hand in the game.
 
+## Rules
+
+- Markers are keyed by `MapAccess.Fingerprint` (layout hash), never by captain or save name, and live in `BepInEx/config/PhilanthropicPhyllonycteris.markers.txt`, never in the game's `saves/` folder (the game lists every json there as a captain). `MapFingerprint`'s algorithm is pinned by a test; changing it orphans every stored marker.
+- `MarkerStore.Changed` is the only thing the chart icon (and later the arrow) reacts to. Click handling never touches GameObjects.
+- `MapProvider.Generate` runs on every zee load and rebuilds the whole chart, `_icons` included, so the marker is rebuilt from its postfix. Being in `_icons` is what keeps the marker a constant size on screen; the game writes `new Vector3(s, s)` to those, so their z scale is 0.
+- If a `MapProvider` field is missing, `MapAccess.Available` is false and no patch is applied at all.
+
 ## Verified in game
 
-Nothing yet. Record each "to verify" item from PLAN.md here as it is measured.
+From a `Debug.DumpMapIcons` capture, 2026-09-19. Record further "to verify" items from PLAN.md here as they are measured.
+
+| Thing | Value |
+|---|---|
+| Map camera | Looks along +z from z = 0, near -20, far 20, culling mask layer 11 only, ortho size 150 at closest zoom |
+| Layer | Everything on the chart is on layer 11 ("Map") |
+| Map root | No components, world (-450, -450, 0) on the 6 x 6 map |
+| Boat icon | `SpriteRenderer`, `Sprites/Default`, sorting layer "AboveLights" order 3, z 0, 8.17 across |
+| Port icon | `SpriteRenderer`, `Sprites/Default`, sorting layer "Default" order 1, z -0.5, 5.78 across |
+| Fog of unknown | `MeshRenderer`, `Unlit/Transparent`, z -5, sorting layer **"Particles"** order 0 (set by a `ParticleEffectsLayering` component). It hides everything on "Default", port icons included, whatever their z or order: the sorting layer decides, not depth |
+| Labels | World-space canvas `MapLabelCanvas`, "AboveLights" order 10, with a `GraphicRaycaster`, and label `Text` is a raycast target, so `EventSystem.IsPointerOverGameObject()` is true over label text |
+| Marker | Sorts on the boat icon's layer at the boat's order + 1 (above the fog, under the labels); 6 chart units across |

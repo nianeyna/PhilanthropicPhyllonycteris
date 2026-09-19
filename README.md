@@ -2,7 +2,11 @@
 
 A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while the marker exists and you are out of port, an arrow floating near your ship points toward it.
 
-**Status:** scaffold only. The plugin loads and does nothing yet; see PLAN.md for the milestones.
+**Status:** the chart marker works; the arrow by the ship is not built yet. See PLAN.md for the milestones.
+
+## Using it
+
+Open the chart and right-click (ctrl+click on a Mac) anywhere on the map, explored or not, to put the marker there. Right-click somewhere else to move it, or right-click the marker itself to remove it. There is one marker per map. It is remembered between sessions, shared by every save of the same zee, and passed on to an heir who inherits the chart.
 
 ## Requirements
 
@@ -32,6 +36,17 @@ A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a 
 3. Copy the plugin DLLs into `BepInEx/plugins/PhilanthropicPhyllonycteris/`.
 
 After the first launch, `BepInEx/LogOutput.log` in the game folder contains a "PhilanthropicPhyllonycteris ... loaded" line.
+
+## Configuration
+
+Edit `BepInEx/config/nianeyna.PhilanthropicPhyllonycteris.cfg` (created on first launch).
+
+| Setting | Default | Effect |
+|---|---|---|
+| `[Marker] Colour` | `FFD14CFF` | Tint of the marker on the chart. Applies live |
+| `[Debug] DumpMapIcons` | false | Development aid: logs how the chart's own icons, fog and labels are built the first time the chart opens |
+
+Markers are kept in `BepInEx/config/PhilanthropicPhyllonycteris.markers.txt`.
 
 To turn the plugin off, delete its folder from `BepInEx/plugins` with the game closed.
 
