@@ -1,12 +1,12 @@
 # PhilanthropicPhyllonycteris
 
-A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while the marker exists and you are out of port, an arrow floating near your ship points toward it.
+A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while the marker exists and you are out of port, a bat hovering near your ship shows the way to it.
 
-**Status:** the chart marker works; the arrow by the ship is built but still being tuned. See PLAN.md for the milestones.
+**Status:** the chart marker works; the bat by the ship is built but still being tuned. See PLAN.md for the milestones.
 
 ## Using it
 
-Open the chart and right-click (ctrl+click on a Mac) anywhere on the map, explored or not, to put the marker there. Right-click somewhere else to move it, or right-click the marker itself to remove it. There is one marker per map. While a marker exists, an arrow floats near your ship at zee and points toward it. It hides in port, while the chart is open, and once you are nearly on top of the marker.
+Open the chart and right-click (ctrl+click on a Mac) anywhere on the map, explored or not, to put the marker there. Right-click somewhere else to move it, or right-click the marker itself to remove it. There is one marker per map. While a marker exists, a bat with a pale light around it hovers near your ship at zee, on the side the marker is on and heading toward it. It hides in port, while the chart is open, and once you are nearly on top of the marker.
 
 The marker is remembered between sessions, shared by every save of the same zee, and passed on to an heir who inherits the chart.
 
@@ -46,10 +46,10 @@ Edit `BepInEx/config/nianeyna.PhilanthropicPhyllonycteris.cfg` (created on first
 | Setting | Default | Effect |
 |---|---|---|
 | `[Marker] Colour` | `B78639FF` | Colour of the marker's disc on the chart. The default is the yellow of the game's ship icon |
-| `[Indicator] Enabled` | true | Show the arrow by the ship. Off keeps only the chart marker |
-| `[Indicator] RingRadius` | 45 | How far from the ship the arrow floats, in zee units (the view is 300 to 400 tall) |
-| `[Indicator] HideWithin` | 90 | The arrow hides once the marker is closer than this. Keep it above `RingRadius` |
-| `[Indicator] Colour` | `FFD14CFF` | Tint of the arrow |
+| `[Indicator] Enabled` | true | Show the bat by the ship. Off keeps only the chart marker |
+| `[Indicator] RingRadius` | 90 | How far from the ship the bat hovers, in zee units (the view is 300 to 400 tall) |
+| `[Indicator] HideWithin` | 100 | The bat hides once the marker is closer than this. Keep it above `RingRadius` |
+| `[Indicator] Colour` | `FFFFFFE6` | Colour of the light around the bat; the last pair is how strong it is |
 | `[Debug] DumpShip` | false | Development aid: logs how the ship and the sailing camera are built the first time the ship is found |
 | `[Debug] DumpMapIcons` | false | Development aid: logs how the chart's own icons, fog and labels are built the first time the chart opens |
 

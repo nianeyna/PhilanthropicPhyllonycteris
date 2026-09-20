@@ -2,7 +2,7 @@ using System;
 
 namespace PhilanthropicPhyllonycteris.Core;
 
-/// <summary>Where the arrow by the ship sits and which way it points.</summary>
+/// <summary>Where the indicator by the ship sits and which way it points.</summary>
 public static class IndicatorMath
 {
     public static float Distance(ZeePoint from, ZeePoint to)
@@ -25,7 +25,7 @@ public static class IndicatorMath
         return new ZeePoint(ship.X + (float)(Math.Cos(radians) * radius), ship.Y + (float)(Math.Sin(radians) * radius));
     }
 
-    /// <summary>The arrow hides once the ship is near the marker; any closer and it would point back across the ship.</summary>
+    /// <summary>The indicator hides once the ship is near the marker; any closer and it would point back across the ship.</summary>
     public static bool IsVisible(ZeePoint ship, ZeePoint marker, float hideWithin) =>
         Distance(ship, marker) > hideWithin;
 }

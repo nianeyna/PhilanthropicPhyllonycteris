@@ -7,16 +7,31 @@ using UnityEngine;
 namespace PhilanthropicPhyllonycteris.UI;
 
 /// <summary>
-/// The arrow by the ship: a world-space sprite on an invisible ring around the boat, on the
-/// bearing to the marker and pointing along it. Being in the world rather than on the HUD, it
-/// stays right however the camera is set, and the game's own panels cover it.
+/// The bat by the ship: the game's own seeking bat with a light spreading from its outline,
+/// hovering on an invisible ring around the boat, on the bearing to the marker and heading along
+/// it. Being in the world rather than on the HUD, it stays right however the camera is set, and
+/// the game's own panels cover it. If the game's bat cannot be had, an arrow stands in.
 /// </summary>
 internal sealed class ShipIndicator
 {
-    private const string ObjectName = "PhilanthropicPhyllonycteris Arrow";
+    private const string ObjectName = "PhilanthropicPhyllonycteris Indicator";
+    private const string GlowObjectName = "Glow";
 
-    // Width in world units; the sailing camera shows 300 to 400 of them top to bottom.
-    private const float UnitsAcross = 12f;
+    // Widths in world units; the sailing camera shows 300 to 400 of them top to bottom, and the
+    // game's seeking bat is 9 across.
+    private const float BatUnitsAcross = 10f;
+    // How far the light spreads beyond the bat's outline, and how wide the game's disc is if the
+    // outline cannot be followed.
+    private const float GlowUnitsBeyond = 2f;
+    private const float GlowDiscUnitsAcross = 12f;
+    private const float ArrowUnitsAcross = 12f;
+
+    // The game's bat is drawn head up, the arrow pointing right.
+    private const float BatHeading = 90f;
+
+    // The hover: a slow drift in and out along the bearing. It carries on while the game is paused.
+    private const float HoverUnits = 1.5f;
+    private const float HoverSeconds = 3f;
 
     // The layer the game puts its own range indicators on so the darkness overlay does not swallow them.
     private const string AboveLightsLayerName = "AboveLights";
@@ -26,8 +41,10 @@ internal sealed class ShipIndicator
     private const float FadeSeconds = 0.3f;
     private const float BoatSearchInterval = 1f;
 
-    private GameObject? _arrow;
+    private GameObject? _indicator;
     private SpriteRenderer? _renderer;
+    private SpriteRenderer? _glow;
+    private float _heading;
     private float _alpha;
 
     private bool _zeeBuilt;
@@ -66,7 +83,7 @@ internal sealed class ShipIndicator
         var wanted = !state.InDock && !state.InMap
             && IndicatorMath.IsVisible(ship, marker.Value, Plugin.HideWithin.Value);
 
-        // Unscaled, so the arrow still fades away if docking stops the clock.
+        // Unscaled, so the bat still fades away if docking stops the clock.
         _alpha = Mathf.MoveTowards(_alpha, wanted ? 1f : 0f, Time.unscaledDeltaTime / FadeSeconds);
         if (_alpha <= 0f)
         {
@@ -74,12 +91,21 @@ internal sealed class ShipIndicator
             return;
         }
 
-        var renderer = Arrow(boat);
-        var ring = IndicatorMath.RingPosition(ship, marker.Value, Plugin.RingRadius.Value);
+        var renderer = Indicator(boat);
+        var hover = _glow != null ? HoverUnits * Mathf.Sin(Time.time * 2f * Mathf.PI / HoverSeconds) : 0f;
+        var ring = IndicatorMath.RingPosition(ship, marker.Value, Plugin.RingRadius.Value + hover);
         renderer.transform.position = new Vector3(ring.X, ring.Y, boatPosition.z);
-        renderer.transform.rotation = Quaternion.Euler(0f, 0f, IndicatorMath.BearingDegrees(ship, marker.Value));
+        renderer.transform.rotation = Quaternion.Euler(0f, 0f, IndicatorMath.BearingDegrees(ship, marker.Value) - _heading);
+
+        // The config colour is the light's; the bat stays black. The stand-in arrow takes the colour itself.
         var colour = Plugin.IndicatorColour.Value;
         colour.a *= _alpha;
+        if (_glow != null)
+        {
+            _glow.color = colour;
+            _glow.enabled = true;
+            colour = new Color(1f, 1f, 1f, _alpha);
+        }
         renderer.color = colour;
         renderer.enabled = true;
     }
@@ -88,17 +114,47 @@ internal sealed class ShipIndicator
     {
         _alpha = 0f;
         if (_renderer != null) _renderer.enabled = false;
+        if (_glow != null) _glow.enabled = false;
     }
 
-    // The arrow lives in the zee's scene and dies with it; Unity's null check notices and it is made again.
-    private SpriteRenderer Arrow(MoveBoat boat)
+    // The indicator lives in the zee's scene and dies with it; Unity's null check notices and it is made again.
+    private SpriteRenderer Indicator(MoveBoat boat)
     {
-        if (_arrow != null && _renderer != null) return _renderer;
-        _arrow = new GameObject(ObjectName) { layer = boat.gameObject.layer };
-        _renderer = _arrow.AddComponent<SpriteRenderer>();
-        _renderer.sprite = Sprites.Chevron(UnitsAcross);
+        if (_indicator != null && _renderer != null) return _renderer;
+        _indicator = new GameObject(ObjectName) { layer = boat.gameObject.layer };
+        _renderer = _indicator.AddComponent<SpriteRenderer>();
         _renderer.sortingLayerName = AboveLightsLayerName;
+        _renderer.sortingOrder = 1;
+        _glow = null;
+
+        if (!SeekingBat.TryGetSprites(out var bat, out var glow))
+        {
+            Plugin.Log.LogWarning("The game's seeking bat is not available, so the indicator is an arrow instead.");
+            _renderer.sprite = Sprites.Chevron(ArrowUnitsAcross);
+            _heading = 0f;
+            return _renderer;
+        }
+
+        _renderer.sprite = bat;
+        _indicator.transform.localScale = ScaleTo(bat, BatUnitsAcross);
+        _heading = BatHeading;
+
+        var glowObject = new GameObject(GlowObjectName) { layer = _indicator.layer };
+        glowObject.transform.SetParent(_indicator.transform, worldPositionStays: false);
+        // The light drawn around the bat is already to the bat's scale; the game's disc is not.
+        var outline = Sprites.Glow(bat, GlowUnitsBeyond / BatUnitsAcross);
+        if (outline == null) glowObject.transform.localScale = ScaleTo(glow, GlowDiscUnitsAcross / _indicator.transform.localScale.x);
+        _glow = glowObject.AddComponent<SpriteRenderer>();
+        _glow.sprite = outline != null ? outline : glow;
+        _glow.sortingLayerName = AboveLightsLayerName;
+        _glow.sortingOrder = 0;
         return _renderer;
+    }
+
+    private static Vector3 ScaleTo(Sprite sprite, float unitsAcross)
+    {
+        var scale = unitsAcross / sprite.bounds.size.x;
+        return new Vector3(scale, scale, 1f);
     }
 
     // Not NavigationProvider.Boat: that searches the scene on every call while there is no boat. This asks once a second.

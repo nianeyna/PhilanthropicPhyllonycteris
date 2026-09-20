@@ -1,6 +1,6 @@
 # PhilanthropicPhyllonycteris: plan
 
-A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while a marker exists and the ship is out of port, an arrow floating on an invisible ring around the ship points toward it.
+A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while a marker exists and the ship is out of port, a bat hovering on an invisible ring around the ship shows the way to it.
 
 Environment, build conventions and game facts are taken from `../sunless-sea-project` (CLAUDE.md, `decomp/`) and `../EndlessGazetteer`. Game 3.0.0.31, Unity 6000.3, Mono, native Linux build, Harmony works.
 
@@ -10,7 +10,7 @@ Environment, build conventions and game facts are taken from `../sunless-sea-pro
 - **Remove:** right-click on the marker itself (hit test in screen pixels, so it is as easy at any zoom).
 - macOS ctrl+left-click counts as a right-click, as it does everywhere else in the game (`OnClickHandler.MacCtrlPressed`; the game's own drag code already ignores that click).
 - Clicks on the chart's uGUI controls (close, zoom) and outside the map rectangle do nothing. Fog of unknown does not matter: marking unexplored zee is the point.
-- **Indicator:** an arrow at a fixed radius from the ship, on the bearing to the marker, rotated to point along that bearing. Shown whenever a marker exists, except in dock (`UIState.InDock`), with the chart open (`InMap`), or once the ship is closer to the marker than a threshold (the arrow would otherwise point back across the ship). It is a world-space object, so the book and menus cover it on their own and it freezes with the game when paused.
+- **Indicator:** the game's own seeking bat (the one that circles the ship while the zee-bat is out) with a pale light spreading from its outline, at a fixed radius from the ship, on the bearing to the marker, heading along that bearing and drifting gently in and out. It began as a drawn arrow, which is what the milestone notes below call it; the arrow remains as the stand-in if the game's bat cannot be had. Shown whenever a marker exists, except in dock (`UIState.InDock`), with the chart open (`InMap`), or once the ship is closer to the marker than a threshold (the arrow would otherwise point back across the ship). It is a world-space object, so the book and menus cover it on their own. The drift carries on while the game is paused.
 - The marker persists across sessions, per map (see Persistence).
 
 Out of scope for the first version: multiple markers, labels, a beacon drawn at the marked spot in the zee, distance readout, clear-on-arrival. The storage format leaves room for the first two.
@@ -50,17 +50,19 @@ PhilanthropicPhyllonycteris.Core/     netstandard2.0, no Unity or game reference
   MarkerFile.cs                 text format: parse, serialise, per-fingerprint lookup
   IndicatorMath.cs              bearing, ring position, visibility by distance
   MarkerHitTest.cs              "is this click on the marker" in screen pixels
+  GlowField.cs                  a glow that follows a shape's outline: distance transform and falloff
 PhilanthropicPhyllonycteris/          net472 plugin
   Plugin.cs                     config, Harmony, LateUpdate tick
   MarkerStore.cs                owns the file and the current marker; raises Changed
   Game/MapAccess.cs             FieldRefs into MapProvider privates, in one place
+  Game/SeekingBat.cs            the sprites of the game's Sea/BatSignal prefab
   Game/MapDump.cs               Debug.DumpMapIcons: logs how the chart's own pieces are built
   Patches/MapProviderPatches.cs Generate postfix, ListenKeyboardEvents postfix
   Patches/NewMapPatches.cs      GenerateTileConfig postfix: a fresh zee starts unmarked
   UI/ChartMarker.cs             the icon on the chart
   UI/ChartClicks.cs             right-click handling on the open chart
-  UI/ShipIndicator.cs           the arrow by the ship
-  UI/Sprites.cs                 builds the two sprites
+  UI/ShipIndicator.cs           the bat by the ship
+  UI/Sprites.cs                 the art: borrowed from the game, drawn around it, or drawn in code
 PhilanthropicPhyllonycteris.Tests/    net8.0 xunit, references Core only
 ```
 
@@ -98,13 +100,13 @@ position = boat.xy + direction * RingRadius      (z and layer copied from the sh
 rotation = Euler(0, 0, bearingDegrees)           (sprite drawn pointing +X)
 ```
 
-It dies with the zee scene; the Unity-null check recreates it lazily. Alpha eases in and out over a fraction of a second rather than popping (`Time.deltaTime`, so it holds still while paused).
+It dies with the zee scene; the Unity-null check recreates it lazily. Alpha eases in and out over a fraction of a second rather than popping (`Time.unscaledDeltaTime`, so it still fades if the clock is stopped).
 
 **To verify in game:** that the sailing camera never rotates (the ring is world-aligned, which is only right if north stays up); a ring radius that clears the ship sprite and its light cone at both zoom levels (start at 45 world units against an ortho size of 150 to 200); visibility and sort order while submerged in Zubmariner; that `InDock` is false in every at-zee state where the arrow should show (it is set at `NavigationProvider` 390/966/1088).
 
 ### Sprites
 
-No art pipeline exists in the sibling mods. The chart marker is the game's own zee-bat icon (`Map/Icons/Ico_bat`): `Sprites` copies its pixels by way of a `RenderTexture` (the game's textures are not CPU-readable) and bleaches the green disc to white, so the config colour decides the disc and the bat stays black. The arrow's chevron, and a cross that stands in if the bat icon cannot be had, are drawn in code (antialiased, white, tinted by config colour). If hand-drawn art is wanted later, swap the bodies for embedded PNGs through `ImageConversion.LoadImage` (adds a reference to `UnityEngine.ImageConversionModule`); nothing else changes.
+No art pipeline exists in the sibling mods. The chart marker is the game's own zee-bat icon (`Map/Icons/Ico_bat`): `Sprites` copies its pixels by way of a `RenderTexture` (the game's textures are not CPU-readable) and bleaches the green disc to white, so the config colour decides the disc and the bat stays black. The indicator by the ship uses the black bat of the game's `Sea/BatSignal` prefab as it is. The light around it is made from the bat: `Sprites.Glow` copies the bat's alpha, and `GlowField` (Core) turns it into a white sprite that is full strength under the bat and eases to nothing a set distance from its outline (an exact distance transform, worked out at no more than 128 px across), which takes the config colour. The prefab's own white disc of light looked pasted on under the bat; it is kept only as the fallback if the bat's pixels cannot be read. The stand-ins for when the game's art cannot be had, a cross for the marker and a chevron for the indicator, are drawn in code (antialiased, white, tinted by config colour). If hand-drawn art is wanted later, swap the bodies for embedded PNGs through `ImageConversion.LoadImage` (adds a reference to `UnityEngine.ImageConversionModule`); nothing else changes.
 
 ### Persistence
 
@@ -124,10 +126,10 @@ PhilanthropicPhyllonycteris markers v1
 
 | Section.Key | Default | Purpose |
 |---|---|---|
-| `Indicator.Enabled` | true | Turn the arrow off and keep the chart marker |
-| `Indicator.RingRadius` | 45 | Distance of the arrow from the ship, world units |
-| `Indicator.HideWithin` | 90 | Hide the arrow when the marker is closer than this |
-| `Indicator.Colour` | warm yellow | Tint of the arrow |
+| `Indicator.Enabled` | true | Turn the bat off and keep the chart marker |
+| `Indicator.RingRadius` | 90 | Distance of the bat from the ship, world units |
+| `Indicator.HideWithin` | 100 | Hide the bat when the marker is closer than this |
+| `Indicator.Colour` | white, `FFFFFFE6` | Colour and strength of the light around the bat |
 | `Marker.Colour` | the boat icon's yellow, `B78639` | Colour of the chart icon's disc |
 | `Debug.DumpMapIcons` | false | Log the chart icon prefabs' components, layers and sorting once |
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PhilanthropicPhyllonycteris.Core;
 using PhilanthropicPhyllonycteris.Game;
 using UnityEngine;
 
@@ -13,12 +14,15 @@ namespace PhilanthropicPhyllonycteris.UI;
 internal static class Sprites
 {
     private const int Size = 64;
+    private const int GlowWorkingWidth = 128;
     private static readonly Color Rim = new Color(0.1f, 0.08f, 0.05f);
 
     private static Sprite? _bat;
     private static bool _batTried;
     private static Sprite? _cross;
     private static Sprite? _chevron;
+    private static Sprite? _glow;
+    private static Sprite? _glowSource;
 
     /// <summary>
     /// The game's zee-bat chart icon with its green disc bleached to white, so a renderer's colour
@@ -53,7 +57,7 @@ internal static class Sprites
         return _cross;
     }
 
-    /// <summary>An arrowhead pointing along +x, so a rotation about z by the bearing aims it.</summary>
+    /// <summary>The fallback for the bat by the ship: an arrowhead pointing along +x, so a rotation about z by the bearing aims it.</summary>
     public static Sprite Chevron(float unitsAcross)
     {
         if (_chevron != null) return _chevron;
@@ -97,6 +101,62 @@ internal static class Sprites
 
         var size = new Vector2(texture.width, texture.height);
         return Sprite.Create(texture, new Rect(Vector2.zero, size), source.pivot / size, source.pixelsPerUnit);
+    }
+
+    /// <summary>
+    /// A white light that follows <paramref name="source"/>'s outline, fading out over
+    /// <paramref name="reach"/> (a share of the source's width) beyond it, for a renderer's colour to
+    /// tint. It has the source's pivot and scale, so it sits right as the source's child at scale one.
+    /// Null if the source's pixels cannot be had. Kept from one zee to the next.
+    /// </summary>
+    public static Sprite? Glow(Sprite source, float reach)
+    {
+        if (_glowSource == source) return _glow;
+        _glowSource = source;
+        _glow = null;
+        try
+        {
+            var texture = CopyPixels(source);
+            var pixels = texture.GetPixels32();
+            var coverage = new float[pixels.Length];
+            for (var i = 0; i < pixels.Length; i++) coverage[i] = pixels[i].a / 255f;
+            var sourceWidth = texture.width;
+            var sourceHeight = texture.height;
+            UnityEngine.Object.Destroy(texture);
+
+            // A glow has no detail to lose, so it is worked out small and left to the filtering to stretch.
+            var factor = (sourceWidth + GlowWorkingWidth - 1) / GlowWorkingWidth;
+            coverage = GlowField.Shrink(coverage, sourceWidth, sourceHeight, factor, out var width, out var height);
+
+            var reachPixels = reach * width;
+            var margin = Mathf.CeilToInt(reachPixels) + 1;
+            int paddedWidth = width + 2 * margin, paddedHeight = height + 2 * margin;
+            var padded = new float[paddedWidth * paddedHeight];
+            for (var y = 0; y < height; y++) Array.Copy(coverage, y * width, padded, (y + margin) * paddedWidth + margin, width);
+
+            var glow = GlowField.Around(padded, paddedWidth, paddedHeight, reachPixels);
+            var glowPixels = new Color32[glow.Length];
+            for (var i = 0; i < glow.Length; i++) glowPixels[i] = new Color32(255, 255, 255, (byte)Mathf.RoundToInt(255f * glow[i]));
+
+            var glowTexture = new Texture2D(paddedWidth, paddedHeight, TextureFormat.RGBA32, mipChain: false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+            };
+            glowTexture.SetPixels32(glowPixels);
+            glowTexture.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+
+            // CopyPixels took the source's trimmed rect, which its pivot is not measured from.
+            var pivot = (source.pivot - source.textureRectOffset) / factor + new Vector2(margin, margin);
+            var size = new Vector2(paddedWidth, paddedHeight);
+            // A full rect, as a mesh fitted to the opaque part would cut the faint edge off.
+            _glow = Sprite.Create(glowTexture, new Rect(Vector2.zero, size), pivot / size, source.pixelsPerUnit / factor, 0, SpriteMeshType.FullRect);
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.LogWarning($"Could not draw a light around {source.name}: {e.Message}");
+        }
+        return _glow;
     }
 
     // The game's textures are not readable from the CPU, so go by way of the GPU.
