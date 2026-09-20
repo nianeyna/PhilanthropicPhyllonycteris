@@ -58,7 +58,7 @@ Read from `resources.assets` with UnityPy, 2026-09-19 (not yet seen in game):
 | Thing | Value |
 |---|---|
 | Chart icon prefabs | `Ico_boat`, `Ico_port`, `Ico_Bat`: one `SpriteRenderer` each, white tint, 26 x 26 px cells of one `Icons` atlas at 4.5 px per unit (5.78 across; the boat's 8.17 above is its bounds while turned 45 degrees). The colour is in the texture, not the renderer |
-| Boat icon disc | RGB 183, 134, 57; the default `Marker.Colour` |
+| Boat icon disc | RGB 183, 134, 57; the tint of the marker's disc (`ChartMarker.DiscColour`) |
 | Seeking bat | Prefab `Sea/BatSignal`, used by `BatSignalIndication` while the zee-bat is out (5 s, circling the ship at radius 300 by `Animator`). Root > `BatLooper` > `Bat` (`SpriteRenderer` `BatSignal_0`, black, head up, 9 x 3.2 world units, sorting layer "Particles", plus a `TrailRenderer`) > `Light` (`SpriteRenderer` `RadialBasic`, a white disc with a soft edge, 94.8 units at scale 0.15, alpha 0.26, on layer 8). The indicator shows the bat at 10 across, with a light of its own making that reaches 2 beyond the bat's outline and is tinted by `Indicator.Colour`; the prefab's disc (at 12) is only the fallback |
 | Bat icon | Disc RGB 117, 146, 120 with a black bat; "AboveLights" order 1. The game does not add it to `_icons`, so its own bat mark does not hold its size as the chart zooms; ours does |
 

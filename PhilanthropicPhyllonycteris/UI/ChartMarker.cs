@@ -18,6 +18,9 @@ internal sealed class ChartMarker
 
     private const float InFrontBy = 0.1f;
 
+    // The disc of the game's own boat icon.
+    private static readonly Color DiscColour = new Color32(183, 134, 57, 255);
+
     private GameObject? _marker;
     private SpriteRenderer? _renderer;
 
@@ -30,10 +33,6 @@ internal sealed class ChartMarker
     public void Initialise()
     {
         MarkerStore.Instance.Changed += Rebuild;
-        Plugin.MarkerColour.SettingChanged += (_, _) =>
-        {
-            if (_renderer != null) _renderer.color = Plugin.MarkerColour.Value;
-        };
     }
 
     /// <summary>The marker's centre and half its width on screen, for telling a click on it from a click beside it.</summary>
@@ -73,7 +72,7 @@ internal sealed class ChartMarker
 
         _renderer = _marker.AddComponent<SpriteRenderer>();
         _renderer.sprite = Sprites.Bat() ?? Sprites.Cross(CrossUnitsAcross);
-        _renderer.color = Plugin.MarkerColour.Value;
+        _renderer.color = DiscColour;
         SortAboveFog(_renderer);
 
         // The game resizes everything in this list each frame the chart is open.
