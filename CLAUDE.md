@@ -51,7 +51,15 @@ From a `Debug.DumpMapIcons` capture, 2026-09-19. Record further "to verify" item
 | Port icon | `SpriteRenderer`, `Sprites/Default`, sorting layer "Default" order 1, z -0.5, 5.78 across |
 | Fog of unknown | `MeshRenderer`, `Unlit/Transparent`, z -5, sorting layer **"Particles"** order 0 (set by a `ParticleEffectsLayering` component). It hides everything on "Default", port icons included, whatever their z or order: the sorting layer decides, not depth |
 | Labels | World-space canvas `MapLabelCanvas`, "AboveLights" order 10, with a `GraphicRaycaster`, and label `Text` is a raycast target, so `EventSystem.IsPointerOverGameObject()` is true over label text |
-| Marker | Sorts on the boat icon's layer at the boat's order + 1 (above the fog, under the labels); 6 chart units across |
+| Marker | Sorts on the boat icon's layer at the boat's order + 1 (above the fog, under the labels); the game's bat icon, so 5.78 chart units across |
+
+Read from `resources.assets` with UnityPy, 2026-09-19 (not yet seen in game):
+
+| Thing | Value |
+|---|---|
+| Chart icon prefabs | `Ico_boat`, `Ico_port`, `Ico_Bat`: one `SpriteRenderer` each, white tint, 26 x 26 px cells of one `Icons` atlas at 4.5 px per unit (5.78 across; the boat's 8.17 above is its bounds while turned 45 degrees). The colour is in the texture, not the renderer |
+| Boat icon disc | RGB 183, 134, 57; the default `Marker.Colour` |
+| Bat icon | Disc RGB 117, 146, 120 with a black bat; "AboveLights" order 1. The game does not add it to `_icons`, so its own bat mark does not hold its size as the chart zooms; ours does |
 
 From a `Debug.DumpShip` capture, 2026-09-19:
 

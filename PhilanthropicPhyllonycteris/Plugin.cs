@@ -39,8 +39,9 @@ public class Plugin : BaseUnityPlugin
         MarkerColour = Config.Bind(
             "Marker",
             "Colour",
-            new Color(1f, 0.82f, 0.3f),
-            "Tint of the marker on the chart, as RRGGBBAA. Applies live.");
+            // The disc of the game's own boat icon.
+            (Color)new Color32(183, 134, 57, 255),
+            "Colour of the marker's disc on the chart, as RRGGBBAA. The default is the yellow of the game's ship icon. Applies live.");
         IndicatorEnabled = Config.Bind(
             "Indicator",
             "Enabled",

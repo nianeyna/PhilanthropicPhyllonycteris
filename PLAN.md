@@ -104,7 +104,7 @@ It dies with the zee scene; the Unity-null check recreates it lazily. Alpha ease
 
 ### Sprites
 
-No art pipeline exists in the sibling mods. `Sprites` draws both textures in code at startup (a small pennant/cross for the chart, a chevron for the arrow, antialiased, white, tinted by config colour). If hand-drawn art is wanted later, swap the bodies for embedded PNGs through `ImageConversion.LoadImage` (adds a reference to `UnityEngine.ImageConversionModule`); nothing else changes.
+No art pipeline exists in the sibling mods. The chart marker is the game's own zee-bat icon (`Map/Icons/Ico_bat`): `Sprites` copies its pixels by way of a `RenderTexture` (the game's textures are not CPU-readable) and bleaches the green disc to white, so the config colour decides the disc and the bat stays black. The arrow's chevron, and a cross that stands in if the bat icon cannot be had, are drawn in code (antialiased, white, tinted by config colour). If hand-drawn art is wanted later, swap the bodies for embedded PNGs through `ImageConversion.LoadImage` (adds a reference to `UnityEngine.ImageConversionModule`); nothing else changes.
 
 ### Persistence
 
@@ -128,7 +128,7 @@ PhilanthropicPhyllonycteris markers v1
 | `Indicator.RingRadius` | 45 | Distance of the arrow from the ship, world units |
 | `Indicator.HideWithin` | 90 | Hide the arrow when the marker is closer than this |
 | `Indicator.Colour` | warm yellow | Tint of the arrow |
-| `Marker.Colour` | same | Tint of the chart icon |
+| `Marker.Colour` | the boat icon's yellow, `B78639` | Colour of the chart icon's disc |
 | `Debug.DumpMapIcons` | false | Log the chart icon prefabs' components, layers and sorting once |
 
 Live `SettingChanged` handling only for the colours and `Enabled`; the rest are read each frame anyway.

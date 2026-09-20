@@ -12,9 +12,9 @@ internal sealed class ChartMarker
 {
     private const string ObjectName = "PhilanthropicPhyllonycteris Marker";
 
-    // Width in chart units at the game's icon scale of 1; a chart tile is 150 across.
-    // The game's port icon is 5.8 and its boat icon 8.2.
-    private const float UnitsAcross = 6f;
+    // Width of the fallback cross in chart units at the game's icon scale of 1, to match the
+    // game's bat and port icons at 5.8; a chart tile is 150 across.
+    private const float CrossUnitsAcross = 5.8f;
 
     private const float InFrontBy = 0.1f;
 
@@ -72,7 +72,7 @@ internal sealed class ChartMarker
         _marker.transform.position = world;
 
         _renderer = _marker.AddComponent<SpriteRenderer>();
-        _renderer.sprite = Sprites.Cross(UnitsAcross);
+        _renderer.sprite = Sprites.Bat() ?? Sprites.Cross(CrossUnitsAcross);
         _renderer.color = Plugin.MarkerColour.Value;
         SortAboveFog(_renderer);
 

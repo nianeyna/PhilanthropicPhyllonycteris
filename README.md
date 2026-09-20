@@ -45,7 +45,7 @@ Edit `BepInEx/config/nianeyna.PhilanthropicPhyllonycteris.cfg` (created on first
 
 | Setting | Default | Effect |
 |---|---|---|
-| `[Marker] Colour` | `FFD14CFF` | Tint of the marker on the chart |
+| `[Marker] Colour` | `B78639FF` | Colour of the marker's disc on the chart. The default is the yellow of the game's ship icon |
 | `[Indicator] Enabled` | true | Show the arrow by the ship. Off keeps only the chart marker |
 | `[Indicator] RingRadius` | 45 | How far from the ship the arrow floats, in zee units (the view is 300 to 400 tall) |
 | `[Indicator] HideWithin` | 90 | The arrow hides once the marker is closer than this. Keep it above `RingRadius` |

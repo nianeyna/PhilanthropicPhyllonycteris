@@ -1,21 +1,48 @@
 using System;
+using System.Collections.Generic;
+using PhilanthropicPhyllonycteris.Game;
 using UnityEngine;
 
 namespace PhilanthropicPhyllonycteris.UI;
 
 /// <summary>
-/// The mod's art, drawn in code so there are no asset files to ship. Shapes are white with a dark
-/// rim, so a renderer's colour tints the shape and leaves the rim dark against any part of the chart.
+/// The mod's art, drawn in code or borrowed from the game so there are no asset files to ship.
+/// Shapes are white with a dark rim, so a renderer's colour tints the shape and leaves the rim dark
+/// against any part of the chart.
 /// </summary>
 internal static class Sprites
 {
     private const int Size = 64;
     private static readonly Color Rim = new Color(0.1f, 0.08f, 0.05f);
 
+    private static Sprite? _bat;
+    private static bool _batTried;
     private static Sprite? _cross;
     private static Sprite? _chevron;
 
-    /// <summary>X marks the spot. <paramref name="unitsAcross"/> is its width in the units of whatever it is parented to.</summary>
+    /// <summary>
+    /// The game's zee-bat chart icon with its green disc bleached to white, so a renderer's colour
+    /// decides the disc while the bat stays black. It keeps the game's size (5.78 chart units across).
+    /// Null if the game's icon cannot be had, which is tried once.
+    /// </summary>
+    public static Sprite? Bat()
+    {
+        if (_batTried) return _bat;
+        _batTried = true;
+        try
+        {
+            var source = MapAccess.BatIconSprite;
+            if (source != null) _bat = Bleach(source);
+        }
+        catch (Exception e)
+        {
+            Plugin.Log.LogWarning($"Could not copy the game's bat icon: {e.Message}");
+        }
+        if (_bat == null) Plugin.Log.LogWarning("The game's bat icon is not available, so the marker is a cross instead.");
+        return _bat;
+    }
+
+    /// <summary>The fallback for <see cref="Bat"/>: X marks the spot. <paramref name="unitsAcross"/> is its width in the units of whatever it is parented to.</summary>
     public static Sprite Cross(float unitsAcross)
     {
         if (_cross != null) return _cross;
@@ -36,6 +63,69 @@ internal static class Sprites
             DistanceToSegment(x, y, tip, 0f, tail, -spread)) - halfStroke, rimWidth);
         return _chevron;
     }
+
+    #region Borrowing
+
+    // Greyscale copy of a sprite, scaled so its commonest colour (an icon's disc) comes out white.
+    private static Sprite Bleach(Sprite source)
+    {
+        var texture = CopyPixels(source);
+        var pixels = texture.GetPixels32();
+
+        var counts = new Dictionary<int, int>();
+        var disc = 0f;
+        var most = 0;
+        foreach (var pixel in pixels)
+        {
+            if (pixel.a < 255) continue;
+            var key = pixel.r << 16 | pixel.g << 8 | pixel.b;
+            counts.TryGetValue(key, out var count);
+            counts[key] = ++count;
+            if (count <= most) continue;
+            most = count;
+            disc = ((Color)pixel).grayscale;
+        }
+        if (disc <= 0f) disc = 1f;
+
+        for (var i = 0; i < pixels.Length; i++)
+        {
+            var value = (byte)Mathf.RoundToInt(255f * Mathf.Clamp01(((Color)pixels[i]).grayscale / disc));
+            pixels[i] = new Color32(value, value, value, pixels[i].a);
+        }
+        texture.SetPixels32(pixels);
+        texture.Apply(updateMipmaps: false, makeNoLongerReadable: true);
+
+        var size = new Vector2(texture.width, texture.height);
+        return Sprite.Create(texture, new Rect(Vector2.zero, size), source.pivot / size, source.pixelsPerUnit);
+    }
+
+    // The game's textures are not readable from the CPU, so go by way of the GPU.
+    private static Texture2D CopyPixels(Sprite source)
+    {
+        var atlas = source.texture;
+        var rect = source.textureRect;
+        var target = RenderTexture.GetTemporary(atlas.width, atlas.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        var previous = RenderTexture.active;
+        try
+        {
+            Graphics.Blit(atlas, target);
+            RenderTexture.active = target;
+            var copy = new Texture2D((int)rect.width, (int)rect.height, TextureFormat.RGBA32, mipChain: false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = atlas.filterMode,
+            };
+            copy.ReadPixels(rect, 0, 0);
+            return copy;
+        }
+        finally
+        {
+            RenderTexture.active = previous;
+            RenderTexture.ReleaseTemporary(target);
+        }
+    }
+
+    #endregion
 
     #region Drawing
 

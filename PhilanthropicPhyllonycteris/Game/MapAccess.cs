@@ -5,6 +5,7 @@ using HarmonyLib;
 using PhilanthropicPhyllonycteris.Core;
 using Sunless.Game.ApplicationProviders;
 using Sunless.Game.Entities.Geography;
+using Sunless.Game.Utilities;
 using UnityEngine;
 
 namespace PhilanthropicPhyllonycteris.Game;
@@ -16,6 +17,9 @@ namespace PhilanthropicPhyllonycteris.Game;
 /// </summary>
 internal static class MapAccess
 {
+    // MapProvider.Prefabs.BatIcon; that class is private and its constants are inlined where used.
+    private const string BatIconPrefab = "Map/Icons/Ico_bat";
+
     private static AccessTools.FieldRef<MapProvider, GameObject>? _mapRoot;
     private static AccessTools.FieldRef<MapProvider, Camera>? _mapCamera;
     private static AccessTools.FieldRef<MapProvider, List<GameObject>>? _icons;
@@ -63,6 +67,17 @@ internal static class MapAccess
     public static GameObject? FogOfUnknown => Available ? _mapFoU!(Map) : null;
     public static GameObject? AnyPortIcon => Available ? _ports!(Map)?.Keys.FirstOrDefault(p => p != null) : null;
     public static GameObject? SmallLabels => Available ? _labelsSmall!(Map) : null;
+
+    /// <summary>The sprite of the icon the game puts on the chart for what the zee-bat found. Null if the prefab is gone.</summary>
+    public static Sprite? BatIconSprite
+    {
+        get
+        {
+            var prefab = PrefabHelper.Instance.Get(BatIconPrefab, supressWarning: true);
+            var renderer = prefab != null ? prefab.GetComponentInChildren<SpriteRenderer>(includeInactive: true) : null;
+            return renderer != null ? renderer.sprite : null;
+        }
+    }
 
     /// <summary>The fingerprint of a map, the one way for every caller so stored markers and fresh maps agree.</summary>
     public static string Fingerprint(SerializableTileConfig config) =>
