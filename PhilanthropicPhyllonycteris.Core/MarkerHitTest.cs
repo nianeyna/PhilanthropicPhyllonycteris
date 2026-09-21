@@ -6,9 +6,7 @@ namespace PhilanthropicPhyllonycteris.Core;
 /// </summary>
 public static class MarkerHitTest
 {
-    public const float DefaultRadiusPixels = 16f;
-
-    public static bool Hits(float clickX, float clickY, float markerX, float markerY, float radiusPixels = DefaultRadiusPixels)
+    public static bool Hits(float clickX, float clickY, float markerX, float markerY, float radiusPixels)
     {
         float dx = clickX - markerX, dy = clickY - markerY;
         return dx * dx + dy * dy <= radiusPixels * radiusPixels;

@@ -18,17 +18,11 @@ public class Plugin : BaseUnityPlugin
     internal static ManualLogSource Log = null!;
 
     internal static ConfigEntry<bool> IndicatorEnabled = null!;
-
     internal static ConfigEntry<float> RingRadius = null!;
-
     internal static ConfigEntry<float> HideWithin = null!;
-
     internal static ConfigEntry<Color> IndicatorColour = null!;
-
     internal static ConfigEntry<bool> ClearOnArrival = null!;
-
     internal static ConfigEntry<bool> DumpMapIcons = null!;
-
     internal static ConfigEntry<bool> DumpShip = null!;
 
     private Harmony? _harmony;

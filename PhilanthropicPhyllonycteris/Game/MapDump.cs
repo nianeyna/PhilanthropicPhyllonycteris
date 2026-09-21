@@ -6,19 +6,19 @@ using UnityEngine.UI;
 namespace PhilanthropicPhyllonycteris.Game;
 
 /// <summary>
-/// Development aid behind <c>Debug.DumpMapIcons</c>: logs how the chart's own pieces are built
-/// (components, layers, depth, sorting, shaders) the first time the chart opens, which is what
-/// the marker has to fit in with.
+/// Development aids: log how the game's own pieces are built (components, layers, depth, sorting,
+/// shaders), which is what the marker and the indicator have to fit in with. Once each per session.
 /// </summary>
 internal static class MapDump
 {
-    private static bool _done;
+    private static bool _chartDone;
     private static bool _shipDone;
 
+    /// <summary>Behind <c>Debug.DumpMapIcons</c>: the chart's camera, icons, fog and labels.</summary>
     public static void OnChartShown()
     {
-        if (_done || !Plugin.DumpMapIcons.Value || !MapAccess.Available) return;
-        _done = true;
+        if (_chartDone || !Plugin.DumpMapIcons.Value) return;
+        _chartDone = true;
 
         var text = new StringBuilder("Chart dump\n");
         var camera = MapAccess.MapCamera;
@@ -28,7 +28,7 @@ internal static class MapDump
                 $"near {camera.nearClipPlane}, far {camera.farClipPlane}, ortho size {camera.orthographicSize}, " +
                 $"culling mask 0x{camera.cullingMask:X8}, transparency sort {camera.transparencySortMode}");
         }
-        text.AppendLine("Sorting layers, bottom to top: " + string.Join(", ", SortingLayer.layers.Select(l => $"{l.name} ({l.value})")));
+        text.AppendLine(SortingLayers());
         Describe(text, "Map root", MapAccess.MapRoot, children: false);
         Describe(text, "Boat icon", MapAccess.BoatIcon, children: true);
         Describe(text, "Port icon", MapAccess.AnyPortIcon, children: true);
@@ -50,14 +50,14 @@ internal static class MapDump
         Plugin.Log.LogInfo(text.ToString());
     }
 
-    /// <summary>Behind <c>Debug.DumpShip</c>: the same for the boat and the sailing camera, once per session.</summary>
+    /// <summary>Behind <c>Debug.DumpShip</c>: the boat and the sailing camera.</summary>
     public static void OnShipFound(Component boat)
     {
         if (_shipDone || !Plugin.DumpShip.Value) return;
         _shipDone = true;
 
         var text = new StringBuilder("Ship dump\n");
-        text.AppendLine("Sorting layers, bottom to top: " + string.Join(", ", SortingLayer.layers.Select(l => $"{l.name} ({l.value})")));
+        text.AppendLine(SortingLayers());
         var camera = Camera.main;
         if (camera != null)
         {
@@ -67,6 +67,9 @@ internal static class MapDump
         Describe(text, "Boat", boat.gameObject, children: true);
         Plugin.Log.LogInfo(text.ToString());
     }
+
+    private static string SortingLayers() =>
+        "Sorting layers, bottom to top: " + string.Join(", ", SortingLayer.layers.Select(l => $"{l.name} ({l.value})"));
 
     private static void Describe(StringBuilder text, string title, GameObject? thing, bool children)
     {

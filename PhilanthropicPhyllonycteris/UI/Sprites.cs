@@ -7,9 +7,9 @@ using UnityEngine;
 namespace PhilanthropicPhyllonycteris.UI;
 
 /// <summary>
-/// The mod's art, drawn in code or borrowed from the game so there are no asset files to ship.
-/// Shapes are white with a dark rim, so a renderer's colour tints the shape and leaves the rim dark
-/// against any part of the chart.
+/// The mod's art, borrowed from the game or drawn in code so there are no asset files to ship.
+/// Whatever is meant to take a renderer's colour is white. The drawn shapes, which only stand in
+/// when the game's art cannot be had, also have a dark rim that shows against any background.
 /// </summary>
 internal static class Sprites
 {
@@ -23,6 +23,8 @@ internal static class Sprites
     private static Sprite? _chevron;
     private static Sprite? _glow;
     private static Sprite? _glowSource;
+
+    #region Borrowed from the game
 
     /// <summary>
     /// The game's zee-bat chart icon with its green disc bleached to white, so a renderer's colour
@@ -45,30 +47,6 @@ internal static class Sprites
         if (_bat == null) Plugin.Log.LogWarning("The game's bat icon is not available, so the marker is a cross instead.");
         return _bat;
     }
-
-    /// <summary>The fallback for <see cref="Bat"/>: X marks the spot. <paramref name="unitsAcross"/> is its width in the units of whatever it is parented to.</summary>
-    public static Sprite Cross(float unitsAcross)
-    {
-        if (_cross != null) return _cross;
-        const float arm = 20f, halfStroke = 4.5f, rimWidth = 3f;
-        _cross = Draw(unitsAcross, (x, y) => Math.Min(
-            DistanceToSegment(x, y, -arm, -arm, arm, arm),
-            DistanceToSegment(x, y, -arm, arm, arm, -arm)) - halfStroke, rimWidth);
-        return _cross;
-    }
-
-    /// <summary>The fallback for the bat by the ship: an arrowhead pointing along +x, so a rotation about z by the bearing aims it.</summary>
-    public static Sprite Chevron(float unitsAcross)
-    {
-        if (_chevron != null) return _chevron;
-        const float tip = 16f, tail = -12f, spread = 20f, halfStroke = 4.5f, rimWidth = 3f;
-        _chevron = Draw(unitsAcross, (x, y) => Math.Min(
-            DistanceToSegment(x, y, tip, 0f, tail, spread),
-            DistanceToSegment(x, y, tip, 0f, tail, -spread)) - halfStroke, rimWidth);
-        return _chevron;
-    }
-
-    #region Borrowing
 
     // Greyscale copy of a sprite, scaled so its commonest colour (an icon's disc) comes out white.
     private static Sprite Bleach(Sprite source)
@@ -187,7 +165,29 @@ internal static class Sprites
 
     #endregion
 
-    #region Drawing
+    #region Drawn in code
+
+    /// <summary>The fallback for <see cref="Bat"/>: X marks the spot. <paramref name="unitsAcross"/> is its width in the units of whatever it is parented to.</summary>
+    public static Sprite Cross(float unitsAcross)
+    {
+        if (_cross != null) return _cross;
+        const float arm = 20f, halfStroke = 4.5f, rimWidth = 3f;
+        _cross = Draw(unitsAcross, (x, y) => Math.Min(
+            DistanceToSegment(x, y, -arm, -arm, arm, arm),
+            DistanceToSegment(x, y, -arm, arm, arm, -arm)) - halfStroke, rimWidth);
+        return _cross;
+    }
+
+    /// <summary>The fallback for the bat by the ship: an arrowhead pointing along +x, so a rotation about z by the bearing aims it.</summary>
+    public static Sprite Chevron(float unitsAcross)
+    {
+        if (_chevron != null) return _chevron;
+        const float tip = 16f, tail = -12f, spread = 20f, halfStroke = 4.5f, rimWidth = 3f;
+        _chevron = Draw(unitsAcross, (x, y) => Math.Min(
+            DistanceToSegment(x, y, tip, 0f, tail, spread),
+            DistanceToSegment(x, y, tip, 0f, tail, -spread)) - halfStroke, rimWidth);
+        return _chevron;
+    }
 
     // signedDistance is in pixels from the texture's centre: negative inside the shape.
     private static Sprite Draw(float unitsAcross, Func<float, float, float> signedDistance, float rimWidth)

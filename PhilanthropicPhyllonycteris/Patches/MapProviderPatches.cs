@@ -30,6 +30,7 @@ internal static class ChartTickPatch
     private static void Postfix() => ChartClicks.Tick();
 }
 
+/// <summary>The chart has been opened, which is when the chart dump, if asked for, is taken.</summary>
 [HarmonyPatch(typeof(MapProvider), nameof(MapProvider.Show))]
 internal static class ChartShownPatch
 {

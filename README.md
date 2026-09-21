@@ -1,14 +1,16 @@
 # PhilanthropicPhyllonycteris
 
-A BepInEx 5 plugin for Sunless Sea. Right-click anywhere on the chart to drop a marker; while the marker exists and you are out of port, a bat hovering near your ship shows the way to it.
-
-**Status:** the chart marker works; the bat by the ship is built but still being tuned. See PLAN.md for the milestones.
+The Philanthropic Phyllonycteris (or Friendly Flower-Bat, when she's at home) is a rather more helpful than usual zee-bat who will point your way at zee. Right-click anywhere on the chart to drop a marker; while the marker exists and you are out of port, she'll fly ahead of you and show the way to it.
 
 ## Using it
 
-Open the chart and right-click (ctrl+click on a Mac) anywhere on the map, explored or not, to put the marker there. Right-click somewhere else to move it, or right-click the marker itself to remove it. There is one marker per map. While a marker exists, a bat with a pale light around it hovers near your ship at zee, on the side the marker is on and heading toward it. It hides in port, while the chart is open, and once you are nearly on top of the marker.
+- **Place the marker:** open the chart and right-click anywhere on the map, explored or not.
+- **Move it:** right-click somewhere else. There is one marker per map.
+- **Remove it:** right-click the marker itself.
 
-The marker is remembered between sessions, shared by every save of the same zee, and passed on to an heir who inherits the chart.
+While a marker exists, a bat with a pale light around it hovers near your ship at zee, on the side the marker is on and heading toward it. It hides in port, while the chart is open, and once you are nearly on top of the marker. When you arrive, the marker is removed for you (this can be turned off).
+
+The marker is remembered between sessions, shared by every save of the same zee, and passed on to an heir who inherits the chart. A newly generated zee always starts unmarked.
 
 ## Requirements
 
@@ -55,7 +57,9 @@ Edit `BepInEx/config/nianeyna.PhilanthropicPhyllonycteris.cfg` (created on first
 
 Markers are kept in `BepInEx/config/PhilanthropicPhyllonycteris.markers.txt`.
 
-To turn the plugin off, delete its folder from `BepInEx/plugins` with the game closed.
+## Uninstalling
+
+Delete the plugin's folder from `BepInEx/plugins` with the game closed. Nothing is written to your saves, so they are unaffected; the markers file can be deleted too.
 
 ## Building from source
 

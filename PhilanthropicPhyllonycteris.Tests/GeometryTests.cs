@@ -52,17 +52,17 @@ public class GeometryTests
     }
 
     [Fact]
-    public void Arrow_sits_on_the_ring_between_ship_and_marker()
+    public void Indicator_sits_on_the_ring_between_ship_and_marker()
     {
         var marker = FromShip(-300f, 400f);
-        var arrow = IndicatorMath.RingPosition(Ship, marker, 50f);
+        var indicator = IndicatorMath.RingPosition(Ship, marker, 50f);
 
-        Assert.Equal(50f, IndicatorMath.Distance(Ship, arrow), Tolerance);
-        Assert.Equal(450f, IndicatorMath.Distance(arrow, marker), Tolerance);
+        Assert.Equal(50f, IndicatorMath.Distance(Ship, indicator), Tolerance);
+        Assert.Equal(450f, IndicatorMath.Distance(indicator, marker), Tolerance);
     }
 
     [Fact]
-    public void Arrow_hides_once_the_ship_is_near_the_marker()
+    public void Indicator_hides_once_the_ship_is_near_the_marker()
     {
         Assert.True(IndicatorMath.IsVisible(Ship, FromShip(0f, 91f), hideWithin: 90f));
         Assert.False(IndicatorMath.IsVisible(Ship, FromShip(0f, 89f), hideWithin: 90f));

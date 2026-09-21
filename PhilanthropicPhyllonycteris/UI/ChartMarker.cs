@@ -16,6 +16,8 @@ internal sealed class ChartMarker
     // game's bat and port icons at 5.8; a chart tile is 150 across.
     private const float CrossUnitsAcross = 5.8f;
 
+    // Where the game puts its port icons and its own bat mark; the marker is never behind that.
+    private const float IconDepth = -0.5f;
     private const float InFrontBy = 0.1f;
 
     // The disc of the game's own boat icon.
@@ -104,7 +106,7 @@ internal sealed class ChartMarker
     // fog and the boat icon, without crossing the camera's near plane.
     private static float DepthInFront()
     {
-        var z = -0.5f;
+        var z = IconDepth;
         foreach (var thing in new[] { MapAccess.FogOfUnknown, MapAccess.BoatIcon })
         {
             if (thing == null) continue;
