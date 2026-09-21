@@ -13,7 +13,7 @@ Environment, build conventions and game facts are taken from `../sunless-sea-pro
 - **Indicator:** the game's own seeking bat (the one that circles the ship while the zee-bat is out) with a pale light spreading from its outline, at a fixed radius from the ship, on the bearing to the marker, heading along that bearing and drifting gently in and out. It began as a drawn arrow, which is what the milestone notes below call it; the arrow remains as the stand-in if the game's bat cannot be had. Shown whenever a marker exists, except in dock (`UIState.InDock`), with the chart open (`InMap`), or once the ship is closer to the marker than a threshold (the arrow would otherwise point back across the ship). It is a world-space object, so the book and menus cover it on their own. The drift carries on while the game is paused.
 - The marker persists across sessions, per map (see Persistence).
 
-Out of scope for the first version: multiple markers, labels, a beacon drawn at the marked spot in the zee, distance readout, clear-on-arrival. The storage format leaves room for the first two.
+Out of scope for the first version: multiple markers, labels, a beacon drawn at the marked spot in the zee, distance readout. (Clear-on-arrival was on this list; playtesting showed the marker is a nuisance without it, so it went in as `Marker.ClearOnArrival`.) The storage format leaves room for the first two.
 
 ## Game facts this rests on (from `decomp/`)
 
@@ -102,6 +102,8 @@ rotation = Euler(0, 0, bearingDegrees)           (sprite drawn pointing +X)
 
 It dies with the zee scene; the Unity-null check recreates it lazily. Alpha eases in and out over a fraction of a second rather than popping (`Time.unscaledDeltaTime`, so it still fades if the clock is stopped).
 
+With `Marker.ClearOnArrival` on, the same tick clears the marker on arrival: `ArrivalTracker` (Core) reports the ship within `HideWithin` of a marker it has been farther from, so a marker placed beside the ship, or found beside it on loading, stays. The clear waits for the bat's fade to finish, and happens with the bat turned off too.
+
 **To verify in game:** that the sailing camera never rotates (the ring is world-aligned, which is only right if north stays up); a ring radius that clears the ship sprite and its light cone at both zoom levels (start at 45 world units against an ortho size of 150 to 200); visibility and sort order while submerged in Zubmariner; that `InDock` is false in every at-zee state where the arrow should show (it is set at `NavigationProvider` 390/966/1088).
 
 ### Sprites
@@ -130,6 +132,7 @@ PhilanthropicPhyllonycteris markers v1
 | `Indicator.RingRadius` | 90 | Distance of the bat from the ship, world units |
 | `Indicator.HideWithin` | 100 | Hide the bat when the marker is closer than this |
 | `Indicator.Colour` | white, `FFFFFFE6` | Colour and strength of the light around the bat |
+| `Marker.ClearOnArrival` | true | Remove the marker when the ship comes within `HideWithin` of it, having been farther away |
 | `Debug.DumpMapIcons` | false | Log the chart icon prefabs' components, layers and sorting once |
 
 No `SettingChanged` handling: the indicator reads every setting each frame, so they all apply live.
@@ -142,6 +145,7 @@ Worth having, and nothing beyond:
 - `MapFingerprint`: same config gives the same value (pinned literal, to catch an accidental algorithm change that would orphan everyone's markers); swapping two tiles changes it.
 - `MarkerFile`: round trip; clearing a fingerprint (the fresh-zee rule) removes only that line; other maps' lines survive a set and a remove; a damaged line is reported and the rest kept; decimal comma cultures do not change the output.
 - `IndicatorMath`: bearing for the four quadrants; position lies on the ring; hidden inside `HideWithin`.
+- `ArrivalTracker`: arrival needs the ship to have been away from that marker first; a moved marker or a loaded save starts afresh.
 - `MarkerHitTest`: inside and outside the radius.
 
 Everything holding a GameObject is checked by hand in the game, as in the sibling mods.

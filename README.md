@@ -49,6 +49,7 @@ Edit `BepInEx/config/nianeyna.PhilanthropicPhyllonycteris.cfg` (created on first
 | `[Indicator] RingRadius` | 90 | How far from the ship the bat hovers, in zee units (the view is 300 to 400 tall) |
 | `[Indicator] HideWithin` | 100 | The bat hides once the marker is closer than this. Keep it above `RingRadius` |
 | `[Indicator] Colour` | `FFFFFFE6` | Colour of the light around the bat; the last pair is how strong it is |
+| `[Marker] ClearOnArrival` | true | Remove the marker once the ship comes within `HideWithin` of it. A marker placed closer than that stays until the ship has left and come back |
 | `[Debug] DumpShip` | false | Development aid: logs how the ship and the sailing camera are built the first time the ship is found |
 | `[Debug] DumpMapIcons` | false | Development aid: logs how the chart's own icons, fog and labels are built the first time the chart opens |
 

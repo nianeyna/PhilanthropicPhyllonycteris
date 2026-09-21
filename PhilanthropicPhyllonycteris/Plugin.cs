@@ -25,6 +25,8 @@ public class Plugin : BaseUnityPlugin
 
     internal static ConfigEntry<Color> IndicatorColour = null!;
 
+    internal static ConfigEntry<bool> ClearOnArrival = null!;
+
     internal static ConfigEntry<bool> DumpMapIcons = null!;
 
     internal static ConfigEntry<bool> DumpShip = null!;
@@ -54,6 +56,11 @@ public class Plugin : BaseUnityPlugin
             "Colour",
             new Color(1f, 1f, 1f, 0.9f),
             "Colour of the light around the bat, as RRGGBBAA; the last pair is how strong it is. Applies live.");
+        ClearOnArrival = Config.Bind(
+            "Marker",
+            "ClearOnArrival",
+            true,
+            "Remove the marker once the ship comes within HideWithin of it. A marker placed closer than that stays until the ship has left and come back. Applies live.");
         DumpMapIcons = Config.Bind(
             "Debug",
             "DumpMapIcons",

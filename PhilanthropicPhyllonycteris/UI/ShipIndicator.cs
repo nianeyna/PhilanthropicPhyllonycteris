@@ -50,6 +50,7 @@ internal sealed class ShipIndicator
     private bool _zeeBuilt;
     private MoveBoat? _boat;
     private float _nextBoatSearch;
+    private readonly ArrivalTracker _arrival = new ArrivalTracker();
 
     public static ShipIndicator Instance { get; } = new ShipIndicator();
 
@@ -63,6 +64,7 @@ internal sealed class ShipIndicator
         _zeeBuilt = true;
         _boat = null;
         _nextBoatSearch = 0f;
+        _arrival.Reset();
     }
 
     /// <summary>Runs from the plugin's LateUpdate, after the boat has moved for the frame.</summary>
@@ -71,7 +73,7 @@ internal sealed class ShipIndicator
         if (!_zeeBuilt) return;
         var boat = FindBoat();
         var marker = MarkerStore.Instance.Current;
-        if (boat == null || marker == null || !Plugin.IndicatorEnabled.Value)
+        if (boat == null || marker == null)
         {
             Hide();
             return;
@@ -79,6 +81,15 @@ internal sealed class ShipIndicator
 
         Vector3 boatPosition = boat.transform.position;
         var ship = new ZeePoint(boatPosition.x, boatPosition.y);
+        // Arriving is the marker's business, so it counts with the bat turned off too.
+        var arrived = _arrival.HasArrived(ship, marker.Value, Plugin.HideWithin.Value) && Plugin.ClearOnArrival.Value;
+        if (!Plugin.IndicatorEnabled.Value)
+        {
+            if (arrived) MarkerStore.Instance.Clear();
+            Hide();
+            return;
+        }
+
         var state = GameProvider.Instance.CurrentUIState;
         var wanted = !state.InDock && !state.InMap
             && IndicatorMath.IsVisible(ship, marker.Value, Plugin.HideWithin.Value);
@@ -87,6 +98,8 @@ internal sealed class ShipIndicator
         _alpha = Mathf.MoveTowards(_alpha, wanted ? 1f : 0f, Time.unscaledDeltaTime / FadeSeconds);
         if (_alpha <= 0f)
         {
+            // Only now, so the bat fades away on arrival like any other time rather than vanishing with the marker.
+            if (arrived) MarkerStore.Instance.Clear();
             Hide();
             return;
         }

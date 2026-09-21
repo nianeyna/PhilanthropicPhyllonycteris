@@ -71,6 +71,53 @@ public class GeometryTests
 
     #endregion
 
+    #region ArrivalTracker
+
+    private const float Within = 100f;
+
+    [Fact]
+    public void Sailing_up_to_the_marker_is_arriving()
+    {
+        var tracker = new ArrivalTracker();
+        var marker = FromShip(0f, 500f);
+
+        Assert.False(tracker.HasArrived(Ship, marker, Within));
+        Assert.True(tracker.HasArrived(FromShip(0f, 450f), marker, Within));
+    }
+
+    [Fact]
+    public void A_marker_placed_beside_the_ship_stays_until_the_ship_has_left_and_come_back()
+    {
+        var tracker = new ArrivalTracker();
+        var marker = FromShip(0f, 50f);
+
+        Assert.False(tracker.HasArrived(Ship, marker, Within));
+        Assert.False(tracker.HasArrived(FromShip(0f, 300f), marker, Within));
+        Assert.True(tracker.HasArrived(Ship, marker, Within));
+    }
+
+    [Fact]
+    public void Having_been_away_from_one_marker_does_not_count_for_the_next()
+    {
+        var tracker = new ArrivalTracker();
+        tracker.HasArrived(Ship, FromShip(0f, 500f), Within);
+
+        Assert.False(tracker.HasArrived(Ship, FromShip(0f, 50f), Within));
+    }
+
+    [Fact]
+    public void A_reset_forgets_having_been_away()
+    {
+        var tracker = new ArrivalTracker();
+        var marker = FromShip(0f, 500f);
+        tracker.HasArrived(Ship, marker, Within);
+        tracker.Reset();
+
+        Assert.False(tracker.HasArrived(FromShip(0f, 450f), marker, Within));
+    }
+
+    #endregion
+
     #region MarkerHitTest
 
     [Theory]
