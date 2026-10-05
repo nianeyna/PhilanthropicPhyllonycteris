@@ -35,6 +35,11 @@ internal sealed class ShipIndicator
 
     // The layer the game puts its own range indicators on so the darkness overlay does not swallow them.
     private const string AboveLightsLayerName = "AboveLights";
+    // The game keeps what the ship sails under on that layer too (bridges, lighthouse caps, statues:
+    // most at order 0, the tallest at 4), and equal orders are settled by distance, which changes as
+    // the ship goes by. So the bat and its light take the top of the range; orders are 16 bit.
+    private const int BatSortingOrder = short.MaxValue;
+    private const int GlowSortingOrder = BatSortingOrder - 1;
 
     private const string PlayerBoatName = "PlayerBoat";
 
@@ -137,7 +142,7 @@ internal sealed class ShipIndicator
         _indicator = new GameObject(ObjectName) { layer = boat.gameObject.layer };
         _renderer = _indicator.AddComponent<SpriteRenderer>();
         _renderer.sortingLayerName = AboveLightsLayerName;
-        _renderer.sortingOrder = 1;
+        _renderer.sortingOrder = BatSortingOrder;
         _glow = null;
 
         if (!SeekingBat.TryGetSprites(out var bat, out var glow))
@@ -160,7 +165,7 @@ internal sealed class ShipIndicator
         _glow = glowObject.AddComponent<SpriteRenderer>();
         _glow.sprite = outline != null ? outline : glow;
         _glow.sortingLayerName = AboveLightsLayerName;
-        _glow.sortingOrder = 0;
+        _glow.sortingOrder = GlowSortingOrder;
         return _renderer;
     }
 

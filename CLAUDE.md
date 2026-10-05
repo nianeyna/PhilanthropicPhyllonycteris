@@ -10,10 +10,10 @@ A BepInEx 5 plugin for Sunless Sea: right-click the chart to place a marker, and
 | Build in use | Native Linux via the `steamlinuxruntime` compat tool |
 | Game folder | `~/.local/share/Steam/steamapps/common/SunlessSea` |
 | Persistent data (content JSON, saves) | `~/.config/unity3d/Failbetter Games/Sunless Sea/` |
-| Decompiled game source | `../sunless-sea-project/decomp/` (sibling checkout; regenerate with the command in its README) |
+| Decompiled game source | `../SunlessSee/decomp/` (sibling checkout; regenerate with the command in its README) |
 | BepInEx log | `<game>/BepInEx/LogOutput.log`; Unity's own log is `~/.config/unity3d/Failbetter Games/Sunless Sea/Player.log` |
 
-Sibling mods with the same conventions: `../sunless-sea-project` (SunlessSee) and `../EndlessGazetteer`.
+Sibling mods with the same conventions: `../SunlessSee` and `../EndlessGazetteer`.
 
 ## Build and test
 
@@ -85,10 +85,17 @@ Read from `resources.assets` with UnityPy, 2026-09-19:
 | Seeking bat | Prefab `Sea/BatSignal`, used by `BatSignalIndication` while the zee-bat is out (5 s, circling the ship at radius 300 by `Animator`). Root > `BatLooper` > `Bat` (`SpriteRenderer` `BatSignal_0`, black, head up, 9 x 3.2 world units, sorting layer "Particles", plus a `TrailRenderer`) > `Light` (`SpriteRenderer` `RadialBasic`, a white disc with a soft edge, 94.8 units at scale 0.15, alpha 0.26, on layer 8). The indicator shows the bat at 10 across, with a light of its own making that reaches 2 beyond the bat's outline and is tinted by `Indicator.Colour`; the prefab's disc (at 12) is only the fallback |
 | Bat icon | Disc RGB 117, 146, 120 with a black bat; "AboveLights" order 1. The game does not add it to `_icons`, so its own bat mark does not hold its size as the chart zooms; ours does |
 
+Read from the game's asset files with UnityPy, 2026-10-04 (every renderer's sorting layer and order):
+
+| Thing | Value |
+|---|---|
+| Scenery on "AboveLights" | The game keeps what the ship sails under there: bridges, lighthouse caps, statues, light strings, dirigibles and the like (65 sprites on layer 0, about 310 on layer 12, "Terrain"), nearly all at order 0, with the iceberg walls at 2, the lightships' top layer at 3 and the big statues at 4. Renderers at the same layer and order are sorted by distance, so anything of ours at a low order there goes under some of them some of the time |
+| "Weather" | Holds only the `Snow` particle system (moved there by `ParticleEffectsLayering`), so snow falls over the indicator as it does over everything else |
+
 From a `Debug.DumpShip` capture, 2026-09-19:
 
 | Thing | Value |
 |---|---|
 | Sorting layers, bottom to top | BelowWater (-3), SeaBed (-2), Decals (-1), Default (0), Particles (1), LightingOverlay (2), AboveLights (3), Weather (4). The darkness is "LightingOverlay", so only "AboveLights" and "Weather" escape it |
 | Player boat | Root "PlayerBoat" on layer 0 at z -0.1, holding `MoveBoat`; hull sprites (`BoatLayer01`, ...) are `Sprites/Default` on sorting layer "Default", about 12 x 41 world units for the starting ship |
-| Indicator | Layer 0, the boat's z, sorting layer "AboveLights", on a ring of radius 90, hidden within 100. Being a world-space object it is right on screen however the camera is turned, and the book and menus cover it on their own. The hover does not stop while the game is paused |
+| Indicator | Layer 0, the boat's z, sorting layer "AboveLights" at the top of its order range (glow 32766, bat 32767), on a ring of radius 90, hidden within 100. Being a world-space object it is right on screen however the camera is turned, and the book and menus cover it on their own. The hover does not stop while the game is paused |
