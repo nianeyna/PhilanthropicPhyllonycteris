@@ -1,6 +1,6 @@
 # PhilanthropicPhyllonycteris
 
-A BepInEx 5 plugin for Sunless Sea: right-click the chart to place a marker, and a bat hovering on a ring around the ship shows the way to it while out of port. The planned features are all built and checked in game. User-facing behaviour, settings, setup and build steps are in README.md.
+A BepInEx 5 plugin for Sunless Sea: right-click the chart to place markers in a route, and a bat hovering on a ring around the ship shows the way to the next one while out of port. The planned features are all built and checked in game. User-facing behaviour, settings, setup and build steps are in README.md.
 
 ## Environment
 
@@ -26,15 +26,17 @@ The game path comes from `Directory.Build.props` (`GameDir`, override with `SUNL
 
 ## Architecture
 
-- **`PhilanthropicPhyllonycteris.Core`** (netstandard2.0, no Unity or game dependencies): coordinates, map fingerprint, marker file format, indicator maths, the glow's distance field. Everything testable lives here.
+- **`PhilanthropicPhyllonycteris.Core`** (netstandard2.0, no Unity or game dependencies): coordinates, map fingerprint, marker file format, indicator maths, the glow's distance field, the chart's click-and-drag state machine (`ChartGesture`). Everything testable lives here.
 - **`PhilanthropicPhyllonycteris`** (net472 plugin): Harmony patches, the marker store, and the GameObjects. Game privates are touched only through `Game/MapAccess`.
 - **`PhilanthropicPhyllonycteris.Tests`** (net8.0 xunit): references Core only. Anything holding a GameObject is checked by hand in the game.
 
 ## Rules
 
 - Markers are keyed by `MapAccess.Fingerprint` (layout hash), never by captain or save name, and live in `BepInEx/config/PhilanthropicPhyllonycteris.markers.txt`, never in the game's `saves/` folder (the game lists every json there as a captain). `MapFingerprint`'s algorithm is pinned by a test; changing it orphans every stored marker.
-- `MarkerStore.Changed` is the only thing the chart icon (and the indicator by the ship) reacts to. Click handling never touches GameObjects.
-- `MapProvider.Generate` runs on every zee load and rebuilds the whole chart, `_icons` included, so the marker is rebuilt from its postfix. Being in `_icons` is what keeps the marker a constant size on screen; the game writes `new Vector3(s, s)` to those, so their z scale is 0.
+- A map has one path of markers, in order; a single marker is a path of one. `MarkerStore.Next` is the head, which arrival drops (`Advance`). Path order is position in the file, never the timestamp (a dragged marker gets a fresh one).
+- `MarkerStore.Changed` is the only thing the chart (icons and route line) and the indicator by the ship react to. Click handling never touches GameObjects: `ChartClicks` feeds `ChartGesture` each frame and carries out its one command against the store. A drag raises `Changed` every frame without saving (`Preview`) and saves once on release (`Commit`), so `ChartMarker.Sync` moves icons in place rather than remaking them.
+- `MapProvider.Generate` runs on every zee load and rebuilds the whole chart, `_icons` included, with a new map root, so the path is rebuilt from its postfix; anything of ours not under the current root is stale. Being in `_icons` is what keeps the icons a constant size on screen; the game writes `new Vector3(s, s)` to those, so their z scale is 0. The route line is not in `_icons` and scales with the chart.
+- `MapProvider.Show` moves the game's boat icon to the ship every time the chart opens (sailing is paused while it is open), so the route line's first point is refreshed from the `Show` postfix.
 - The bat by the ship (`ShipIndicator`) is a root world-space sprite, with the light around it as its child (`Sprites.Glow`, drawn from the bat's own outline and to its scale), ticked from `Plugin.LateUpdate`, so it reads the boat after the boat has moved. It dies with the zee scene and is recreated on the next tick that needs it. Never call `NavigationProvider.Instance.Boat` per frame: with no boat in the scene it runs `GameObject.Find` every call.
 - If a `MapProvider` field is missing, `MapAccess.Available` is false and no patch is applied at all.
 - Every patch is a postfix; nothing of the game's is skipped. Settings are read each frame, so they apply live with no `SettingChanged` handling.
@@ -42,10 +44,10 @@ The game path comes from `Directory.Build.props` (`GameDir`, override with `SUNL
 
 ## Persistence
 
-- Keying by layout means a captain's autosave and named saves share a marker, and an heir who inherits the chart inherits the mark, while a reshuffled zee starts clean. Accepted cost: loading an older save of the same captain shows the newest marker.
+- Keying by layout means a captain's autosave and named saves share a path, and an heir who inherits the chart inherits it, while a reshuffled zee starts clean. Accepted cost: loading an older save of the same captain shows the newest path.
 - `FreshZeePatch` (postfix on `CharacterRepository.GenerateTileConfig`, which runs for a new game and for an heir without the chart; an inherited chart bypasses it via `LegacyProvider.Chart ?? GenerateTileConfig()`) drops any stored line for the new layout, so an heir who rolls a past captain's layout (about 1 in 6 billion under the default rules) does not find that captain's marker. It is the one thing never exercised in game: it cannot be staged by play. To try it, copy the new map's fingerprint onto a line of the markers file before creating the captain and look for "its old marker was dropped" in the log.
 - Lines for other maps are kept untouched and never pruned (about 60 bytes each). Unparseable lines are dropped, with the original copied to `.damaged` first. Every change is written at once, to a sibling file that is swapped in.
-- There is one marker per map. The file format (one line per fingerprint, versioned header) leaves room for several markers or labels if they are ever wanted.
+- The file is one line per marker (versioned header, format version 1 still), a map's lines in path order. A file from before paths is a valid file of one-marker paths; a build from before paths reads a path file as its last line per map and collapses the path when it next writes.
 
 ## Game facts (from `decomp/`)
 
@@ -74,7 +76,7 @@ From a `Debug.DumpMapIcons` capture, 2026-09-19.
 | Port icon | `SpriteRenderer`, `Sprites/Default`, sorting layer "Default" order 1, z -0.5, 5.78 across |
 | Fog of unknown | `MeshRenderer`, `Unlit/Transparent`, z -5, sorting layer **"Particles"** order 0 (set by a `ParticleEffectsLayering` component). It hides everything on "Default", port icons included, whatever their z or order: the sorting layer decides, not depth |
 | Labels | World-space canvas `MapLabelCanvas`, "AboveLights" order 10, with a `GraphicRaycaster`, and label `Text` is a raycast target, so `EventSystem.IsPointerOverGameObject()` is true over label text |
-| Marker | Sorts on the boat icon's layer at the boat's order + 1 (above the fog, under the labels); the game's bat icon, so 5.78 chart units across |
+| Marker | Sorts on the boat icon's layer at the boat's order + 1 (above the fog, under the labels); the game's bat icon, so 5.78 chart units across. The route line is a `LineRenderer` one order below, `Sprites/Default`, 0.6 chart units wide |
 
 Read from `resources.assets` with UnityPy, 2026-09-19:
 

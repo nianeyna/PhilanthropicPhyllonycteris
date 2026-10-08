@@ -8,8 +8,8 @@ namespace PhilanthropicPhyllonycteris.UI;
 
 /// <summary>
 /// The bat by the ship: the game's own seeking bat with a light spreading from its outline,
-/// hovering on an invisible ring around the boat, on the bearing to the marker and heading along
-/// it. Being in the world rather than on the HUD, it stays right however the camera is set, and
+/// hovering on an invisible ring around the boat, on the bearing to the path's first marker and
+/// heading along it. Being in the world rather than on the HUD, it stays right however the camera is set, and
 /// the game's own panels cover it. If the game's bat cannot be had, an arrow stands in.
 /// </summary>
 internal sealed class ShipIndicator
@@ -77,7 +77,7 @@ internal sealed class ShipIndicator
     {
         if (!_zeeBuilt) return;
         var boat = FindBoat();
-        var marker = MarkerStore.Instance.Current;
+        var marker = MarkerStore.Instance.Next;
         if (boat == null || marker == null)
         {
             Hide();
@@ -86,11 +86,11 @@ internal sealed class ShipIndicator
 
         Vector3 boatPosition = boat.transform.position;
         var ship = new ZeePoint(boatPosition.x, boatPosition.y);
-        // Arriving is the marker's business, so it counts with the bat turned off too.
-        var arrived = _arrival.HasArrived(ship, marker.Value, Plugin.HideWithin.Value) && Plugin.ClearOnArrival.Value;
+        // Arriving is the path's business, so it counts with the bat turned off too.
+        var arrived = _arrival.HasArrived(ship, marker.Value, Plugin.HideWithin.Value);
         if (!Plugin.IndicatorEnabled.Value)
         {
-            if (arrived) MarkerStore.Instance.Clear();
+            if (arrived) MarkerStore.Instance.Advance();
             Hide();
             return;
         }
@@ -103,8 +103,9 @@ internal sealed class ShipIndicator
         _alpha = Mathf.MoveTowards(_alpha, wanted ? 1f : 0f, Time.unscaledDeltaTime / FadeSeconds);
         if (_alpha <= 0f)
         {
-            // Only now, so the bat fades away on arrival like any other time rather than vanishing with the marker.
-            if (arrived) MarkerStore.Instance.Clear();
+            // Only now, so the bat fades away on arrival like any other time rather than vanishing
+            // with the marker; with more of the path to go it then fades back in toward the next.
+            if (arrived) MarkerStore.Instance.Advance();
             Hide();
             return;
         }

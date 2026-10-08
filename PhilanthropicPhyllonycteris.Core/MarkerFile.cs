@@ -6,7 +6,7 @@ using System.Text;
 
 namespace PhilanthropicPhyllonycteris.Core;
 
-/// <summary>A marker and the UTC time it was placed.</summary>
+/// <summary>A marker and the UTC time it was placed (or last moved).</summary>
 public readonly struct MarkerEntry
 {
     public ZeePoint Position { get; }
@@ -20,15 +20,17 @@ public readonly struct MarkerEntry
 }
 
 /// <summary>
-/// Every map's marker, keyed by <see cref="MapFingerprint"/>, and its on-disk form: a header line
-/// naming the format version, then one tab-separated line per map with the fingerprint, the
-/// marker's world x and y, and the UTC time it was placed. Lines that cannot be understood are
-/// skipped and reported rather than failing the load; a file in another version of the format is
-/// refused whole.
+/// Every map's path of markers, keyed by <see cref="MapFingerprint"/>, and its on-disk form: a
+/// header line naming the format version, then one tab-separated line per marker with the map's
+/// fingerprint, the marker's world x and y, and the UTC time it was placed. A map's lines are in
+/// path order; order comes from position in the file, never from the timestamp, which a moved
+/// marker refreshes. Lines that cannot be understood are skipped and reported rather than failing
+/// the load; a file in another version of the format is refused whole.
 /// </summary>
 /// <example>
 /// PhilanthropicPhyllonycteris markers	1
 /// 9c1f06e2a4b7d350	4312.5	-208.25	2026-09-19T14:05:00Z
+/// 9c1f06e2a4b7d350	6000	1250	2026-09-19T14:06:30Z
 /// </example>
 public sealed class MarkerFile
 {
@@ -38,21 +40,45 @@ public sealed class MarkerFile
     private const char Tab = '\t';
     private const string TimestampFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-    private readonly Dictionary<string, MarkerEntry> _entries = new Dictionary<string, MarkerEntry>(StringComparer.Ordinal);
+    private static readonly MarkerEntry[] NoMarkers = new MarkerEntry[0];
 
-    public int Count => _entries.Count;
+    private readonly Dictionary<string, List<MarkerEntry>> _paths = new Dictionary<string, List<MarkerEntry>>(StringComparer.Ordinal);
 
-    public MarkerEntry? Get(string fingerprint) =>
-        _entries.TryGetValue(fingerprint, out var entry) ? entry : (MarkerEntry?)null;
+    /// <summary>How many maps have at least one marker.</summary>
+    public int MapCount => _paths.Count;
 
-    public void Set(string fingerprint, MarkerEntry entry)
+    /// <summary>A map's path, in order; empty when it has none.</summary>
+    public IReadOnlyList<MarkerEntry> Get(string fingerprint) =>
+        _paths.TryGetValue(fingerprint, out var path) ? path : NoMarkers;
+
+    public void Append(string fingerprint, MarkerEntry entry)
     {
         if (!IsValidFingerprint(fingerprint)) throw new ArgumentException("A fingerprint is non-empty and has no tabs or line breaks.", nameof(fingerprint));
-        _entries[fingerprint] = entry;
+        if (!_paths.TryGetValue(fingerprint, out var path))
+        {
+            path = new List<MarkerEntry>();
+            _paths[fingerprint] = path;
+        }
+        path.Add(entry);
     }
 
-    /// <summary>Forgets a map's marker. Returns whether there was one, so callers can skip the write when nothing changed.</summary>
-    public bool Remove(string fingerprint) => _entries.Remove(fingerprint);
+    /// <summary>Changes one marker in place, keeping its place in the path. Nothing happens for an index the path does not have.</summary>
+    public void Replace(string fingerprint, int index, MarkerEntry entry)
+    {
+        if (_paths.TryGetValue(fingerprint, out var path) && index >= 0 && index < path.Count) path[index] = entry;
+    }
+
+    /// <summary>Takes one marker out of a map's path; the rest close up. Returns whether there was one, so callers can skip the write when nothing changed.</summary>
+    public bool RemoveAt(string fingerprint, int index)
+    {
+        if (!_paths.TryGetValue(fingerprint, out var path) || index < 0 || index >= path.Count) return false;
+        path.RemoveAt(index);
+        if (path.Count == 0) _paths.Remove(fingerprint);
+        return true;
+    }
+
+    /// <summary>Forgets a map's whole path. Returns whether there was one.</summary>
+    public bool Remove(string fingerprint) => _paths.Remove(fingerprint);
 
     #region Text format
 
@@ -60,12 +86,16 @@ public sealed class MarkerFile
     {
         var text = new StringBuilder();
         text.Append(Header).Append(Tab).Append(Version).Append('\n');
-        foreach (var pair in _entries.OrderBy(p => p.Key, StringComparer.Ordinal))
+        // OrderBy is stable, so a map's lines keep their path order.
+        foreach (var pair in _paths.OrderBy(p => p.Key, StringComparer.Ordinal))
         {
-            text.Append(pair.Key).Append(Tab)
-                .Append(Number(pair.Value.Position.X)).Append(Tab)
-                .Append(Number(pair.Value.Position.Y)).Append(Tab)
-                .Append(pair.Value.SetAtUtc.ToUniversalTime().ToString(TimestampFormat, CultureInfo.InvariantCulture)).Append('\n');
+            foreach (var entry in pair.Value)
+            {
+                text.Append(pair.Key).Append(Tab)
+                    .Append(Number(entry.Position.X)).Append(Tab)
+                    .Append(Number(entry.Position.Y)).Append(Tab)
+                    .Append(entry.SetAtUtc.ToUniversalTime().ToString(TimestampFormat, CultureInfo.InvariantCulture)).Append('\n');
+            }
         }
         return text.ToString();
     }
@@ -104,7 +134,7 @@ public sealed class MarkerFile
                 && DateTime.TryParseExact(fields[3], TimestampFormat, CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var setAt))
             {
-                file._entries[fields[0]] = new MarkerEntry(new ZeePoint(x, y), setAt);
+                file.Append(fields[0], new MarkerEntry(new ZeePoint(x, y), setAt));
             }
             else
             {

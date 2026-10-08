@@ -13,7 +13,7 @@ public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "nianeyna.PhilanthropicPhyllonycteris";
     public const string PluginName = "PhilanthropicPhyllonycteris";
-    public const string PluginVersion = "0.1.0";
+    public const string PluginVersion = "0.2.0";
 
     internal static ManualLogSource Log = null!;
 
@@ -21,7 +21,6 @@ public class Plugin : BaseUnityPlugin
     internal static ConfigEntry<float> RingRadius = null!;
     internal static ConfigEntry<float> HideWithin = null!;
     internal static ConfigEntry<Color> IndicatorColour = null!;
-    internal static ConfigEntry<bool> ClearOnArrival = null!;
     internal static ConfigEntry<bool> DumpMapIcons = null!;
     internal static ConfigEntry<bool> DumpShip = null!;
 
@@ -44,17 +43,12 @@ public class Plugin : BaseUnityPlugin
             "Indicator",
             "HideWithin",
             100f,
-            "The bat hides once the marker is closer than this, in zee units. Keep it above RingRadius, or the bat ends up pointing back across the ship. Applies live.");
+            "The bat hides once the marker is closer than this, in zee units, and the marker counts as reached. Keep it above RingRadius, or the bat ends up pointing back across the ship. Applies live.");
         IndicatorColour = Config.Bind(
             "Indicator",
             "Colour",
             new Color(1f, 1f, 1f, 0.9f),
             "Colour of the light around the bat, as RRGGBBAA; the last pair is how strong it is. Applies live.");
-        ClearOnArrival = Config.Bind(
-            "Marker",
-            "ClearOnArrival",
-            true,
-            "Remove the marker once the ship comes within HideWithin of it. A marker placed closer than that stays until the ship has left and come back. Applies live.");
         DumpMapIcons = Config.Bind(
             "Debug",
             "DumpMapIcons",

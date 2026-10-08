@@ -7,7 +7,7 @@ namespace PhilanthropicPhyllonycteris.Patches;
 
 /// <summary>
 /// The zee, and the chart with it, has just been rebuilt (on every load, not once per session),
-/// so this is where the loaded map is named and its marker put back on the chart.
+/// so this is where the loaded map is named and its path put back on the chart.
 /// </summary>
 [HarmonyPatch(typeof(MapProvider), nameof(MapProvider.Generate))]
 internal static class ChartBuiltPatch
@@ -30,9 +30,16 @@ internal static class ChartTickPatch
     private static void Postfix() => ChartClicks.Tick();
 }
 
-/// <summary>The chart has been opened, which is when the chart dump, if asked for, is taken.</summary>
+/// <summary>
+/// The chart has been opened. The game has just moved its boat icon to the ship, so the route
+/// line's start is brought up to it; and the chart dump, if asked for, is taken.
+/// </summary>
 [HarmonyPatch(typeof(MapProvider), nameof(MapProvider.Show))]
 internal static class ChartShownPatch
 {
-    private static void Postfix() => MapDump.OnChartShown();
+    private static void Postfix()
+    {
+        ChartMarker.Instance.ChartShown();
+        MapDump.OnChartShown();
+    }
 }

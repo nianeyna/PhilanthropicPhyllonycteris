@@ -131,5 +131,29 @@ public class GeometryTests
         Assert.Equal(hit, MarkerHitTest.Hits(clickX, clickY, 100f, 100f, radiusPixels: 16f));
     }
 
+    private static readonly HitCircle[] TwoOverlapping =
+    {
+        new HitCircle(100f, 100f, 16f),
+        new HitCircle(120f, 100f, 16f),
+    };
+
+    [Theory]
+    [InlineData(100f, 100f, 0)]
+    [InlineData(120f, 100f, 1)]
+    [InlineData(109f, 100f, 0)]
+    [InlineData(111f, 100f, 1)]
+    [InlineData(110f, 140f, MarkerHitTest.None)]
+    public void Overlapping_markers_go_to_the_nearer_centre(float clickX, float clickY, int index)
+    {
+        Assert.Equal(index, MarkerHitTest.Nearest(clickX, clickY, TwoOverlapping));
+    }
+
+    [Fact]
+    public void A_drag_off_the_map_is_held_at_its_edge()
+    {
+        Assert.Equal(new ChartPoint(0f, MapSize), ChartSpace.Clamp(new ChartPoint(-5f, MapSize + 5f), MapSize, MapSize));
+        Assert.Equal(new ChartPoint(450f, 450f), ChartSpace.Clamp(new ChartPoint(450f, 450f), MapSize, MapSize));
+    }
+
     #endregion
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using PhilanthropicPhyllonycteris.Core;
 using Xunit;
 
@@ -18,8 +19,18 @@ public class MarkerFileTests
     private static MarkerFile TwoMaps()
     {
         var file = new MarkerFile();
-        file.Set(ThisMap, Marker(4312.5f, -208.25f));
-        file.Set(OtherMap, Marker(0.1f, 8999.999f));
+        file.Append(ThisMap, Marker(4312.5f, -208.25f));
+        file.Append(OtherMap, Marker(0.1f, 8999.999f));
+        return file;
+    }
+
+    // This map has a path of three, placed in x order; the other map has one marker.
+    private static MarkerFile PathOfThree()
+    {
+        var file = TwoMaps();
+        file.Append(ThisMap, Marker(2f, 0f));
+        file.Append(ThisMap, Marker(3f, 0f));
+        file.Replace(ThisMap, 0, Marker(1f, 0f));
         return file;
     }
 
@@ -31,6 +42,8 @@ public class MarkerFileTests
         return reread;
     }
 
+    private static float[] Xs(MarkerFile file, string map) => file.Get(map).Select(m => m.Position.X).ToArray();
+
     private static string WithLines(params string[] lines) =>
         MarkerFile.Header + "\t" + MarkerFile.Version + "\n" + string.Join("\n", lines) + "\n";
 
@@ -41,11 +54,20 @@ public class MarkerFileTests
     {
         var reread = Reread(TwoMaps());
 
-        Assert.Equal(2, reread.Count);
-        Assert.Equal(new ZeePoint(4312.5f, -208.25f), reread.Get(ThisMap)!.Value.Position);
-        Assert.Equal(new ZeePoint(0.1f, 8999.999f), reread.Get(OtherMap)!.Value.Position);
-        Assert.Equal(Placed, reread.Get(ThisMap)!.Value.SetAtUtc);
-        Assert.Equal(DateTimeKind.Utc, reread.Get(ThisMap)!.Value.SetAtUtc.Kind);
+        Assert.Equal(2, reread.MapCount);
+        Assert.Equal(new ZeePoint(4312.5f, -208.25f), reread.Get(ThisMap)[0].Position);
+        Assert.Equal(new ZeePoint(0.1f, 8999.999f), reread.Get(OtherMap)[0].Position);
+        Assert.Equal(Placed, reread.Get(ThisMap)[0].SetAtUtc);
+        Assert.Equal(DateTimeKind.Utc, reread.Get(ThisMap)[0].SetAtUtc.Kind);
+    }
+
+    [Fact]
+    public void A_path_keeps_its_order_through_a_round_trip()
+    {
+        var reread = Reread(PathOfThree());
+
+        Assert.Equal(new[] { 1f, 2f, 3f }, Xs(reread, ThisMap));
+        Assert.Single(reread.Get(OtherMap));
     }
 
     [Fact]
@@ -58,7 +80,7 @@ public class MarkerFileTests
             // German writes 4312,5.
             CultureInfo.CurrentCulture = new CultureInfo("de-DE");
             Assert.Equal(expected, TwoMaps().Write());
-            Assert.Equal(new ZeePoint(4312.5f, -208.25f), MarkerFile.Parse(expected).Get(ThisMap)!.Value.Position);
+            Assert.Equal(new ZeePoint(4312.5f, -208.25f), MarkerFile.Parse(expected).Get(ThisMap)[0].Position);
         }
         finally
         {
@@ -70,36 +92,73 @@ public class MarkerFileTests
     public void Empty_text_is_an_empty_file()
     {
         var problems = new List<string>();
-        Assert.Equal(0, MarkerFile.Parse("", problems).Count);
+        Assert.Equal(0, MarkerFile.Parse("", problems).MapCount);
         Assert.Empty(problems);
+    }
+
+    [Fact]
+    public void A_map_without_markers_has_an_empty_path()
+    {
+        Assert.Empty(new MarkerFile().Get(ThisMap));
     }
 
     #endregion
 
-    #region Changes leave other maps alone
+    #region Changes leave the rest alone
 
     [Fact]
-    public void Moving_a_marker_keeps_other_maps_lines()
+    public void Replacing_a_marker_keeps_its_place_and_other_maps_lines()
     {
-        var file = TwoMaps();
-        file.Set(ThisMap, Marker(10f, 20f));
+        var file = PathOfThree();
+        file.Replace(ThisMap, 1, Marker(10f, 20f));
         var reread = Reread(file);
 
-        Assert.Equal(new ZeePoint(10f, 20f), reread.Get(ThisMap)!.Value.Position);
-        Assert.Equal(new ZeePoint(0.1f, 8999.999f), reread.Get(OtherMap)!.Value.Position);
+        Assert.Equal(new[] { 1f, 10f, 3f }, Xs(reread, ThisMap));
+        Assert.Equal(new ZeePoint(0.1f, 8999.999f), reread.Get(OtherMap)[0].Position);
     }
 
     [Fact]
-    public void Removing_a_marker_removes_only_that_map()
+    public void Replacing_an_index_the_path_does_not_have_changes_nothing()
+    {
+        var file = PathOfThree();
+        file.Replace(ThisMap, 3, Marker(10f, 20f));
+        file.Replace("unknown", 0, Marker(10f, 20f));
+
+        Assert.Equal(new[] { 1f, 2f, 3f }, Xs(file, ThisMap));
+        Assert.Equal(2, file.MapCount);
+    }
+
+    [Fact]
+    public void Removing_from_the_middle_closes_the_path_up()
+    {
+        var file = PathOfThree();
+
+        Assert.True(file.RemoveAt(ThisMap, 1));
+        Assert.Equal(new[] { 1f, 3f }, Xs(Reread(file), ThisMap));
+    }
+
+    [Fact]
+    public void Removing_the_last_marker_forgets_the_map()
     {
         var file = TwoMaps();
+
+        Assert.True(file.RemoveAt(ThisMap, 0));
+        Assert.False(file.RemoveAt(ThisMap, 0));
+        Assert.Equal(1, file.MapCount);
+        Assert.Empty(Reread(file).Get(ThisMap));
+    }
+
+    [Fact]
+    public void Removing_a_map_removes_its_whole_path_and_only_that_map()
+    {
+        var file = PathOfThree();
 
         Assert.True(file.Remove(ThisMap));
         Assert.False(file.Remove(ThisMap));
 
         var reread = Reread(file);
-        Assert.Null(reread.Get(ThisMap));
-        Assert.NotNull(reread.Get(OtherMap));
+        Assert.Empty(reread.Get(ThisMap));
+        Assert.Single(reread.Get(OtherMap));
     }
 
     #endregion
@@ -118,8 +177,8 @@ public class MarkerFileTests
         var file = MarkerFile.Parse(WithLines(damaged, OtherMap + "\t1\t2\t2026-09-19T14:05:00Z"), problems);
 
         Assert.Single(problems);
-        Assert.Null(file.Get(ThisMap));
-        Assert.Equal(new ZeePoint(1f, 2f), file.Get(OtherMap)!.Value.Position);
+        Assert.Empty(file.Get(ThisMap));
+        Assert.Equal(new ZeePoint(1f, 2f), file.Get(OtherMap)[0].Position);
     }
 
     [Fact]
@@ -128,14 +187,14 @@ public class MarkerFileTests
         var problems = new List<string>();
         var text = MarkerFile.Header + "\t" + (MarkerFile.Version + 1) + "\n" + ThisMap + "\t1\t2\t2026-09-19T14:05:00Z\n";
 
-        Assert.Equal(0, MarkerFile.Parse(text, problems).Count);
+        Assert.Equal(0, MarkerFile.Parse(text, problems).MapCount);
         Assert.Single(problems);
     }
 
     [Fact]
     public void A_fingerprint_that_would_break_the_format_is_rejected()
     {
-        Assert.Throws<ArgumentException>(() => new MarkerFile().Set("two\tfields", Marker(1f, 2f)));
+        Assert.Throws<ArgumentException>(() => new MarkerFile().Append("two\tfields", Marker(1f, 2f)));
     }
 
     #endregion
