@@ -13,7 +13,7 @@ public class Plugin : BaseUnityPlugin
 {
     public const string PluginGuid = "nianeyna.PhilanthropicPhyllonycteris";
     public const string PluginName = "PhilanthropicPhyllonycteris";
-    public const string PluginVersion = "0.2.0";
+    public const string PluginVersion = PluginInfo.Version;
 
     internal static ManualLogSource Log = null!;
 
@@ -66,7 +66,7 @@ public class Plugin : BaseUnityPlugin
         ChartMarker.Instance.Initialise();
         _harmony = new Harmony(PluginGuid);
         _harmony.PatchAll(typeof(Plugin).Assembly);
-        Log.LogInfo($"{PluginName} {PluginVersion} loaded");
+        Log.LogInfo($"{PluginName} {PluginInfo.FullVersion} loaded");
     }
 
     private void LateUpdate()

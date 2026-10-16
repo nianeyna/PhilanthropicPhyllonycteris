@@ -7,7 +7,6 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AssemblyName>PhilanthropicPhyllonycteris</AssemblyName>
     <RootNamespace>PhilanthropicPhyllonycteris</RootNamespace>
-    <Version>0.1.0</Version>
     <Deterministic>true</Deterministic>
     <DebugType>portable</DebugType>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
@@ -67,8 +66,32 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Drop the built plugin straight into BepInEx/plugins/PhilanthropicPhyllonycteris -->
-  <Target Name="CopyToPlugins" AfterTargets="Build">
+  <!-- The version comes from the git tag (MinVer, see Directory.Build.props). This writes it into a generated
+       PluginInfo class so the BepInPlugin attribute and the log line can never drift from the tag. -->
+  <Target Name="GeneratePluginInfo" BeforeTargets="CoreCompile" DependsOnTargets="MinVer">
+    <PropertyGroup>
+      <PluginInfoFile>$(IntermediateOutputPath)PluginInfo.g.cs</PluginInfoFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <PluginInfoLine Include="// &lt;auto-generated /&gt;" />
+      <PluginInfoLine Include="// Written by the GeneratePluginInfo target in $(MSBuildProjectFile) from the git tag. Do not edit." />
+      <PluginInfoLine Include="namespace $(RootNamespace)%3B" />
+      <PluginInfoLine Include="internal static class PluginInfo" />
+      <PluginInfoLine Include="{" />
+      <PluginInfoLine Include="%20%20%20%20/// &lt;summary&gt;Major.minor.patch only, as BepInEx requires of a plugin version.&lt;/summary&gt;" />
+      <PluginInfoLine Include="%20%20%20%20public const string Version = &quot;$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)&quot;%3B" />
+      <PluginInfoLine Include="%20%20%20%20/// &lt;summary&gt;The whole version, with the pre-release suffix an untagged build carries.&lt;/summary&gt;" />
+      <PluginInfoLine Include="%20%20%20%20public const string FullVersion = &quot;$(MinVerVersion)&quot;%3B" />
+      <PluginInfoLine Include="}" />
+      <Compile Include="$(PluginInfoFile)" />
+    </ItemGroup>
+    <!-- A design-time build in an IDE may reach here without MinVer having run; it must not blank the file -->
+    <WriteLinesToFile File="$(PluginInfoFile)" Lines="@(PluginInfoLine)" Overwrite="true" WriteOnlyWhenDifferent="true" Condition="'$(MinVerVersion)' != ''" />
+  </Target>
+
+  <!-- Drop the built plugin straight into BepInEx/plugins/PhilanthropicPhyllonycteris for the dev loop.
+       Skipped by the release tool (-p:CopyToPlugins=false) so a release build never touches the live game folder. -->
+  <Target Name="CopyToPlugins" AfterTargets="Build" Condition="'$(CopyToPlugins)' != 'false'">
     <PropertyGroup>
       <PluginOutDir>$(BepInExPluginsDir)/$(AssemblyName)</PluginOutDir>
     </PropertyGroup>

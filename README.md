@@ -2,6 +2,8 @@
 
 The Philanthropic Phyllonycteris (or Friendly Flower-Bat, when she's at home) is a rather more helpful than usual zee-bat who will point your way at zee. Right-click anywhere on the chart to plan a route; while there are any route markers and you are out of port, she'll fly ahead of you and show the way to the next one.
 
+Code written primarily with AI tools for expediency; however, for the record the name "Philanthropic Phyllonycteris" is entirely down to me and my ill-advised thesaurus habit. I hope you enjoy the mod, and don't judge me too harshly for making it unspellable.
+
 ## Using it
 
 - **Place a marker:** open the chart and right-click anywhere on the map, explored or not. Each right-click adds another to the end of the route, and a line runs from your ship through them in order.
@@ -20,7 +22,7 @@ The route is remembered between sessions, shared by every save of the same zee, 
 
 ## Installing
 
-`PhilanthropicPhyllonycteris.dll` and `PhilanthropicPhyllonycteris.Core.dll` both go in `<game>/BepInEx/plugins/PhilanthropicPhyllonycteris/`.
+Get the zip from the [latest release](https://github.com/nianeyna/PhilanthropicPhyllonycteris/releases/latest) (or build it, below). It is laid out as `BepInEx/plugins/PhilanthropicPhyllonycteris/`, so it extracts straight onto the game folder; `PhilanthropicPhyllonycteris.dll` and `PhilanthropicPhyllonycteris.Core.dll` end up in that folder.
 
 ### Windows
 
@@ -71,3 +73,5 @@ dotnet test PhilanthropicPhyllonycteris.sln
 ```
 
 The build copies both DLLs straight into `<game>/BepInEx/plugins/PhilanthropicPhyllonycteris/`. The game folder defaults to `~/.local/share/Steam/steamapps/common/SunlessSea`; override it with the `SUNLESS_SEA_DIR` environment variable or `-p:GameDir=...`.
+
+The version comes from the git tag; an untagged build reports itself as the next patch with a pre-release suffix. Releases are cut as described in [RELEASING.md](RELEASING.md).

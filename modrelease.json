@@ -1,0 +1,29 @@
+{
+  "modName": "PhilanthropicPhyllonycteris",
+  "pluginProject": "PhilanthropicPhyllonycteris/PhilanthropicPhyllonycteris.csproj",
+  "packagedFiles": [
+    "PhilanthropicPhyllonycteris.dll",
+    "PhilanthropicPhyllonycteris.pdb",
+    "PhilanthropicPhyllonycteris.Core.dll",
+    "PhilanthropicPhyllonycteris.Core.pdb"
+  ],
+  "buildProperties": { "CopyToPlugins": "false" },
+  "game": {
+    "dirEnv": "SUNLESS_SEA_DIR",
+    "defaultDir": "~/.local/share/Steam/steamapps/common/SunlessSea",
+    "runtimeAssemblyDirs": ["Sunless Sea_Data/Managed", "BepInEx/core"],
+    "fingerprint": {
+      "file": "Sunless Sea_Data/Managed/Sunless.Game.dll",
+      "sha256": "e40189302338b9bdc879b8474107c5e08d66a706c6a0dcd89250106066d0fdf4",
+      "note": "Sunless Sea 3.0.0.31, Steam build 24946998. Re-test the mod and update this after a game patch; `dotnet modrelease fingerprint` prints the current value."
+    }
+  },
+  "loader": "bepinex",
+  "requirements": [
+    { "name": "BepInEx 5.4.23.5", "url": "https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5" }
+  ],
+  "nexus": {
+    "gameDomain": "sunlesssea",
+    "modId": null
+  }
+}

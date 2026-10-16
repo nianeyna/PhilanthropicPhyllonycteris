@@ -24,6 +24,8 @@ dotnet test PhilanthropicPhyllonycteris.sln
 
 The game path comes from `Directory.Build.props` (`GameDir`, override with `SUNLESS_SEA_DIR`).
 
+The version comes from the git tag via MinVer; `PluginInfo` is generated into `obj/` by the plugin csproj, and `Plugin.PluginVersion` reads it. Never hardcode a version. Releases are made locally with `dotnet modrelease release` (RELEASING.md), a dotnet tool from the sibling `../ModRelease` repository pinned in `.config/dotnet-tools.json`; `modrelease.json` lists what ships and where the game is, and `nexus/` holds the Nexus page text and screenshots. CI only runs the tests.
+
 ## Architecture
 
 - **`PhilanthropicPhyllonycteris.Core`** (netstandard2.0, no Unity or game dependencies): coordinates, map fingerprint, marker file format, indicator maths, the glow's distance field, the chart's click-and-drag state machine (`ChartGesture`). Everything testable lives here.

@@ -1,0 +1,71 @@
+The Philanthropic Phyllonycteris (or Friendly Flower-Bat, when she's at home) is a rather more helpful than usual zee-bat who will point your way at zee. Right-click anywhere on the chart to plan a route; while there are any route markers and you are out of port, she'll fly ahead of you and show the way to the next one.
+
+AI-generated instructions below (reviewed for correctness). If you don't care to read AI and/or already know how to install mods tl;dr it's a BepInEx mod that adds map markers.
+
+[size=4][b]Using it[/b][/size]
+
+[list]
+[*][b]Place a marker:[/b] open the chart and right-click anywhere on the map. Each right-click adds another marker to the end of the route, and a line runs from your ship through them in order.
+[*][b]Move one:[/b] hold the right button on a marker and drag it.
+[*][b]Remove one:[/b] right-click the marker. The route closes up around it.
+[*][b]Clear the route:[/b] double right-click any marker.
+[/list]
+
+While there are markers, a bat with a pale light around it hovers near your ship at zee, on the side the next marker is on and heading toward it. It hides in port, while the chart is open, and once you are nearly on top of the marker. When you arrive, that marker is removed for you and the bat turns toward the next.
+
+The route is remembered between sessions, shared by every save of the same zee, and passed on to an heir who inherits the chart. A newly generated zee always starts unmarked.
+
+[size=4][b]Requirements[/b][/size]
+
+[list]
+[*]Sunless Sea 3.x (Steam). The Windows build, the native Linux build and the Windows build under Proton all work; only the BepInEx install differs.
+[*][url=https://github.com/BepInEx/BepInEx/releases/tag/v5.4.23.5]BepInEx 5.4.23.5[/url].
+[/list]
+
+[size=4][b]Installing[/b][/size]
+
+The download is a zip laid out as [b]BepInEx/plugins/PhilanthropicPhyllonycteris/[/b]. Extract it into the game folder, or let your mod manager install it to the game root, once BepInEx is in place:
+
+[b]Windows[/b]
+[list=1]
+[*]Download BepInEx [b]Unity.Mono-win-x64[/b] and extract it into the game folder (next to Sunless Sea.exe).
+[*]Extract the mod zip into the game folder and launch the game normally.
+[/list]
+
+[b]Native Linux build (Steam Linux Runtime)[/b]
+[list=1]
+[*]Download BepInEx [b]Unity.Mono-linux-x64[/b] and extract it into the game folder (next to Sunless Sea.x86_64).
+[*]Edit run_bepinex.sh: set executable_name="Sunless Sea.x86_64", then chmod u+x run_bepinex.sh.
+[*]In Steam, set the game's launch options to [b]./run_bepinex.sh %command%[/b]
+[*]Extract the mod zip into the game folder.
+[/list]
+
+[b]Windows build under Proton[/b]
+[list=1]
+[*]Download BepInEx [b]Unity.Mono-win-x64[/b] and extract it into the game folder.
+[*]In Steam, set the game's launch options to [b]WINEDLLOVERRIDES="winhttp=n,b" %command%[/b]
+[*]Extract the mod zip into the game folder.
+[/list]
+
+After the first launch, BepInEx/LogOutput.log in the game folder contains a "PhilanthropicPhyllonycteris ... loaded" line.
+
+[size=4][b]Configuration[/b][/size]
+
+Edit [b]BepInEx/config/nianeyna.PhilanthropicPhyllonycteris.cfg[/b] (created on first launch).
+
+[list]
+[*][b][Indicator] Enabled[/b] (true): show the bat by the ship. Off keeps only the chart marker.
+[*][b][Indicator] RingRadius[/b] (90): how far from the ship the bat hovers, in zee units (the view is 300 to 400 tall).
+[*][b][Indicator] HideWithin[/b] (100): the bat hides once the next marker is closer than this, and the marker counts as reached. Keep it above RingRadius. A marker placed closer than this stays until the ship has left and come back.
+[*][b][Indicator] Colour[/b] (FFFFFFE6): colour of the light around the bat; the last pair is how strong it is.
+[/list]
+
+Markers are kept in BepInEx/config/PhilanthropicPhyllonycteris.markers.txt, one line per marker, each map's in route order.
+
+[size=4][b]Uninstalling[/b][/size]
+
+Delete the plugin's folder from BepInEx/plugins with the game closed. Nothing is written to your saves, so they are unaffected; the markers file can be deleted too.
+
+[size=4][b]Source[/b][/size]
+
+MIT licensed. Source, issues and the changelog are on [url=https://github.com/nianeyna/PhilanthropicPhyllonycteris]GitHub[/url].

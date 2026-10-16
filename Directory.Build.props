@@ -12,4 +12,16 @@
     <BepInExPluginsDir>$(GameDir)/BepInEx/plugins</BepInExPluginsDir>
   </PropertyGroup>
 
+  <!-- Versions come from git tags (v1.2.3) via MinVer. An untagged commit builds as the next patch with a
+       pre-release suffix, e.g. 0.2.1-alpha.0.3. MinVerMinimumMajorMinor only matters before the first tag,
+       and afterwards to announce the next minor early. -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerMinimumMajorMinor>1.0</MinVerMinimumMajorMinor>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="all" />
+  </ItemGroup>
+
 </Project>
