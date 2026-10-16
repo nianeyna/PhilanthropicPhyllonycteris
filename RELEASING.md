@@ -14,11 +14,11 @@ The version comes from the git tag. There is nothing to edit in the code: MinVer
    git tag vX.Y.Z && git push origin main vX.Y.Z
    ```
 
-3. With `GITHUB_TOKEN` set to a token that can write this repository's releases, run:
+3. With `GITHUB_TOKEN` set to a token that can write this repository's releases (see [GitHub token](#github-token)), run:
 
    ```sh
    dotnet tool restore
-   dotnet modrelease release
+   GITHUB_TOKEN=$(cat ~/.config/modrelease/github-token) dotnet modrelease release
    ```
 
    `--dry-run` does everything except the GitHub calls; `--draft` creates the release as a draft to look over.
@@ -26,6 +26,19 @@ The version comes from the git tag. There is nothing to edit in the code: MinVer
 4. Post to Nexus from `artifacts/nexus-kit-X.Y.Z/`, following its `POSTING.md`. The archive there is byte for byte the one on the GitHub release.
 
 `dotnet modrelease package` runs the same build, checks and kit on any commit, with warnings in place of refusals, so the pipeline can be tried without tagging. The tool's README describes every check it makes.
+
+## GitHub token
+
+Make a fine-grained personal access token (GitHub > Settings > Developer settings > Fine-grained tokens) limited to this repository, with Contents: read and write, and an expiry.
+
+Keep it in a file outside any repository that only you can read, and paste the token in with an editor so it never goes through a command line:
+
+```sh
+mkdir -p ~/.config/modrelease && chmod 700 ~/.config/modrelease
+touch ~/.config/modrelease/github-token && chmod 600 ~/.config/modrelease/github-token
+```
+
+The release command above reads the file at the point of use, so the token is set for that one process and never appears in the shell history. Do not `export` it from `.bashrc`, which hands it to everything you run. When the token expires, make a new one and overwrite the file.
 
 ## After a game patch
 
