@@ -4,9 +4,13 @@ All notable changes to PhilanthropicPhyllonycteris are listed here. The format f
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-10-15
+## [1.0.1]
 
-First release.
+Fix incomplete release caused by immutable release setting.
+
+## [1.0.0] - 2026-10-15 [YANKED]
+
+First release. (Yanked because the release was incomplete due to immutability.)
 
 ### Added
 
